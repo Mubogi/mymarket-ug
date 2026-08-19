@@ -88,6 +88,13 @@ def signup():
         create_payment(
             vendor, current_app.config["SETUP_FEE"], "setup", "Vendor signup fee"
         )
+        from ..sms import send_sms
+
+        send_sms(
+            user.phone,
+            f"Hi {user.name}! Your MyMarket.ug application for '{vendor.shop_name}' was received. "
+            "Pay UGX 10,000 setup fee to go live.",
+        )
         login_user(user)
         flash(
             "Application received! Pay UGX 10,000 setup fee. An admin will activate your shop after payment.",
@@ -201,6 +208,29 @@ def add_product():
     db.session.commit()
     flash("Product added!", "success")
     return redirect(url_for("vendor.dashboard", tab="products"))
+
+
+@bp.route("/products/<int:pid>/edit", methods=["GET", "POST"])
+@login_required
+def edit_product(pid):
+    v = current_vendor()
+    p = Product.query.get_or_404(pid)
+    if p.vendor_id != v.id:
+        abort(403)
+    if request.method == "POST":
+        p.name = request.form["name"].strip()
+        p.description = request.form.get("description", "")
+        p.price = int(float(request.form["price"] or 0))
+        p.category = request.form.get("category", p.category)
+        image = save_upload(request.files.get("image"))
+        if image:
+            p.image_url = image
+        elif request.form.get("image_url"):
+            p.image_url = request.form["image_url"]
+        db.session.commit()
+        flash("Product updated!", "success")
+        return redirect(url_for("vendor.dashboard", tab="products"))
+    return render_template("vendor/edit_product.html", v=v, p=p, categories=CATEGORIES)
 
 
 @bp.route("/products/<int:pid>/delete", methods=["POST"])

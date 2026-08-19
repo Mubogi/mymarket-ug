@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Admin — MyMarket.ug{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-extrabold text-brand-700 mb-4">Admin Panel</h1>
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-extrabold text-brand-700">Admin Panel</h1>
+  <a href="/admin/analytics" class="text-sm font-semibold text-brand-700">📊 Business analytics →</a>
+</div>
 
 {% if expiring %}
 <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-sm">

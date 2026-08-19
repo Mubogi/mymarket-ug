@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Analytics — MyMarket.ug Admin{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-extrabold text-brand-700">Business Analytics</h1>
+  <a href="/admin" class="text-sm text-brand-700 font-semibold">← Admin panel</a>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5 text-center">
+  <div class="bg-brand-50 rounded-xl p-3"><div class="text-xl font-extrabold text-brand-700">UGX {{ total_revenue|ugx }}</div><div class="text-xs text-gray-500">Total revenue</div></div>
+  <div class="bg-brand-50 rounded-xl p-3"><div class="text-xl font-extrabold text-brand-700">{{ active_vendor_count }}/{{ vendor_count }}</div><div class="text-xs text-gray-500">Active vendors</div></div>
+  <div class="bg-brand-50 rounded-xl p-3"><div class="text-xl font-extrabold text-brand-700">{{ product_count }}</div><div class="text-xs text-gray-500">Products</div></div>
+  <div class="bg-brand-50 rounded-xl p-3"><div class="text-xl font-extrabold text-brand-700">{{ pending_payments }}</div><div class="text-xs text-gray-500">Pending payments</div></div>
+</div>
+
+<div class="grid sm:grid-cols-2 gap-4">
+  <div class="bg-white border rounded-2xl p-4">
+    <h3 class="font-bold mb-2 text-sm">Revenue by type (UGX)</h3>
+    <canvas id="revType" height="180"></canvas>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <h3 class="font-bold mb-2 text-sm">Revenue by month (last 6 months)</h3>
+    <canvas id="revMonth" height="180"></canvas>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <h3 class="font-bold mb-2 text-sm">Customer engagement</h3>
+    <canvas id="engage" height="180"></canvas>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <h3 class="font-bold mb-2 text-sm">Products per category</h3>
+    <canvas id="cats" height="180"></canvas>
+  </div>
+</div>
+
+<h3 class="font-bold mt-5 mb-2 text-sm">Top vendors by product views</h3>
+<div class="bg-white border rounded-2xl p-3 text-sm space-y-1">
+  {% for name, views in top_vendors %}
+  <div class="flex justify-between"><span>{{ name }}</span><b>{{ views or 0 }} views</b></div>
+  {% else %}<p class="text-gray-500">No data yet.</p>{% endfor %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const green = '#15803d', light = '#86efac';
+  new Chart(document.getElementById('revType'), {
+    type: 'bar',
+    data: { labels: Object.keys({{ revenue_by_type|tojson }}), datasets: [{ data: Object.values({{ revenue_by_type|tojson }}), backgroundColor: green }] },
+    options: { plugins: { legend: { display: false } } }
+  });
+  new Chart(document.getElementById('revMonth'), {
+    type: 'line',
+    data: { labels: {{ rev_month_labels|tojson }}, datasets: [{ data: {{ rev_month_values|tojson }}, borderColor: green, backgroundColor: light, fill: true, tension: .3 }] },
+    options: { plugins: { legend: { display: false } } }
+  });
+  new Chart(document.getElementById('engage'), {
+    type: 'doughnut',
+    data: { labels: Object.keys({{ engagement|tojson }}), datasets: [{ data: Object.values({{ engagement|tojson }}), backgroundColor: ['#15803d','#4ade80','#86efac','#bbf7d0'] }] }
+  });
+  new Chart(document.getElementById('cats'), {
+    type: 'pie',
+    data: { labels: {{ top_categories|map(attribute=0)|list|tojson }}, datasets: [{ data: {{ top_categories|map(attribute=1)|list|tojson }}, backgroundColor: ['#15803d','#16a34a','#4ade80','#86efac','#bbf7d0'] }] }
+  });
+</script>
+{% endblock %}

@@ -21,5 +21,35 @@
     <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">💬 WhatsApp Vendor</a>
     <a href="/go/call/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">📞 Call Vendor</a>
   </div>
+
+  <!-- REVIEWS -->
+  <div id="reviews" class="mt-8">
+    <h2 class="font-bold text-lg">
+      Reviews
+      {% if product.avg_rating %}
+        <span class="text-amber-500">★ {{ product.avg_rating }}</span>
+        <span class="text-xs text-gray-400">({{ product.reviews|length }})</span>
+      {% endif %}
+    </h2>
+    <div class="space-y-2 mt-2 mb-4">
+      {% for r in product.reviews|sort(attribute='created_at', reverse=True) %}
+      <div class="bg-brand-50 rounded-xl p-3 text-sm">
+        <span class="font-semibold">{{ r.reviewer_name }}</span>
+        <span class="text-amber-500">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</span>
+        <p class="text-gray-600">{{ r.comment }}</p>
+      </div>
+      {% else %}<p class="text-sm text-gray-500">No reviews yet. Be the first!</p>{% endfor %}
+    </div>
+    <form method="post" action="/product/{{ product.id }}/review" class="bg-white border rounded-2xl p-3 space-y-2">
+      <div class="flex gap-2">
+        <input name="reviewer_name" placeholder="Your name (optional)" class="flex-1 border rounded-lg px-3 py-2 text-sm">
+        <select name="rating" class="border rounded-lg px-2 py-2 text-sm">
+          {% for i in range(5, 0, -1) %}<option value="{{ i }}">{{ '★' * i }}</option>{% endfor %}
+        </select>
+      </div>
+      <textarea name="comment" rows="2" placeholder="How was this product/vendor?" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+      <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-2 text-sm">Submit Review</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

@@ -11,6 +11,28 @@
     Shop: <a class="text-brand-700 font-semibold" href="/shop/{{ v.slug }}">{{ v.slug }}.mymarket.ug</a>
     {% if v.subscription_expires_at %} · Subscription: {{ v.subscription_expires_at.strftime('%d %b %Y') }}{% endif %}
   </p>
+  <button id="enablePush" onclick="subscribePush()" class="hidden mb-4 px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">🔔 Enable push notifications</button>
+  <script>
+    function b64ToUint8Array(base64) {
+      const padding = '='.repeat((4 - base64.length % 4) % 4);
+      const raw = atob((base64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+    async function subscribePush() {
+      const { key } = await (await fetch('/api/push/public-key')).json();
+      if (!key) { alert('Push notifications are not enabled on the server yet.'); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8Array(key) });
+      await fetch('/vendor/push/subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription: sub }) });
+      document.getElementById('enablePush').classList.add('hidden');
+      alert('Notifications enabled! 🔔');
+    }
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(async reg => {
+        if (!(await reg.pushManager.getSubscription())) document.getElementById('enablePush').classList.remove('hidden');
+      });
+    }
+  </script>
 
   <!-- Tabs -->
   <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
@@ -54,6 +76,7 @@
           <div class="text-brand-700 font-bold">UGX {{ p.price|ugx }}</div>
           <div class="text-xs text-gray-400">{{ p.views_count }} views</div>
           <div class="flex gap-1 mt-1">
+            <a href="/vendor/products/{{ p.id }}/edit" class="text-xs border border-brand-600 text-brand-700 font-bold px-2 py-1 rounded">Edit</a>
             {% if not p.boosted_now %}
             <form method="post" action="/vendor/products/{{ p.id }}/boost"><button class="text-xs bg-amber-400 font-bold px-2 py-1 rounded">🚀 Boost 5k/day</button></form>
             {% endif %}
@@ -105,6 +128,11 @@
         <span>{{ p.type.replace('_',' ') }} {% if p.note %}<span class="text-gray-400">· {{ p.note }}</span>{% endif %}</span>
         <span class="font-bold">UGX {{ p.amount|ugx }}</span>
         <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if p.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ p.status }}</span>
+        {% if p.status == 'pending' %}
+        <form method="post" action="/vendor/checkout/{{ p.id }}">
+          <button class="text-xs bg-brand-600 text-white font-bold px-3 py-1 rounded-full">📱 Pay with Mobile Money</button>
+        </form>
+        {% endif %}
       </div>
       {% else %}<p class="text-sm text-gray-500">No payments yet.</p>{% endfor %}
     </div>

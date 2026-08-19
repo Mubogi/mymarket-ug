@@ -38,6 +38,7 @@
       <div class="text-[11px] text-gray-500 flex items-center gap-1">
         {{ p.vendor.shop_name }}
         {% if p.vendor.is_verified %}<span class="text-brand-600" title="Verified">✔</span>{% endif %}
+        {% if p.avg_rating %}<span class="text-amber-500 ml-auto">★ {{ p.avg_rating }}</span>{% endif %}
       </div>
     </div>
   </a>

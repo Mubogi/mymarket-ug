@@ -17,6 +17,19 @@ class Config:
     CRON_SECRET = os.environ.get("CRON_SECRET", "cron-secret")
     BASE_DOMAIN = os.environ.get("BASE_DOMAIN", "mymarket.ug")
     VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+    VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+    VAPID_CLAIMS_EMAIL = os.environ.get("VAPID_CLAIMS_EMAIL", "admin@mymarket.ug")
+
+    # Flutterwave (MTN MoMo / Airtel Money). Leave blank to use simulated payments.
+    FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
+    FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "")
+    FLW_WEBHOOK_HASH = os.environ.get("FLW_WEBHOOK_HASH", "")
+
+    # Africa's Talking SMS. Leave blank to disable.
+    AT_USERNAME = os.environ.get("AT_USERNAME", "")
+    AT_API_KEY = os.environ.get("AT_API_KEY", "")
+
+    SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 30  # 30-day static cache
 
     # Pricing (UGX)
     SETUP_FEE = 10_000

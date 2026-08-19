@@ -82,6 +82,13 @@ class Product(db.Model):
             and self.boost_expires_at > datetime.utcnow()
         )
 
+    @property
+    def avg_rating(self):
+        rs = self.reviews
+        if not rs:
+            return None
+        return round(sum(r.rating for r in rs) / len(rs), 1)
+
 
 class Payment(db.Model):
     __tablename__ = "payments"
@@ -92,6 +99,7 @@ class Payment(db.Model):
     type = db.Column(db.String(30), nullable=False)
     status = db.Column(db.String(20), default="pending")  # pending|paid
     reference = db.Column(db.String(120))
+    tx_ref = db.Column(db.String(120), unique=True)  # Flutterwave transaction ref
     note = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
@@ -149,6 +157,20 @@ class AdCampaign(db.Model):
 
     vendor = db.relationship("Vendor", backref="ad_campaigns")
     product = db.relationship("Product", backref="ad_campaigns")
+
+
+class Review(db.Model):
+    __tablename__ = "reviews"
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"), nullable=False)
+    reviewer_name = db.Column(db.String(120), default="Customer")
+    rating = db.Column(db.Integer, nullable=False)  # 1-5
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship("Product", backref="reviews")
+    vendor = db.relationship("Vendor", backref="reviews")
 
 
 class PushSubscription(db.Model):

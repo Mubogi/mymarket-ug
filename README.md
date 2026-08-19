@@ -13,7 +13,34 @@ approves vendors and tracks payments.
 - **Market Day banner**: scrolling marquee on every page for market days in the next 3 days
 - **Subdomain shops**: `slug.mymarket.ug` renders the vendor shop (falls back to `/shop/<slug>`)
 - **PWA**: installable on phones, service worker + push notification plumbing
-- **Cron endpoint**: `/cron/daily?secret=...` deactivates expired vendors, resets monthly upload counters on the 1st, expires stale boosts
+- **Cron endpoint**: `/cron/daily?secret=...` deactivates expired vendors, resets monthly upload counters on the 1st, expires stale boosts, and sends each vendor a daily "N new shop views" push digest
+- **Real payments (Flutterwave)**: vendors tap "Pay with Mobile Money" → hosted Flutterwave checkout (MTN MoMo / Airtel Money) → webhook verifies and activates the purchase automatically. Without API keys it falls back to manual "admin marks paid"
+- **Web Push**: "New vendor joined" broadcast, "Product boosted" alerts, daily view digests (VAPID + pywebpush)
+- **Image compression**: uploads are auto-resized to max 1000px and JPEG-optimized (a 3MB photo becomes ~6KB) — fast on 3G
+- **Ratings & reviews**: customers review products without login; stars show on product pages and cards
+- **SMS (Africa's Talking)**: signup confirmation, vendor approval, payment confirmation texts
+- **Admin analytics** (`/admin/analytics`): revenue by type & month, engagement funnel, top vendors/categories
+
+## Optional integrations (env vars)
+
+| Variable | What it enables |
+|---|---|
+| `FLW_SECRET_KEY`, `FLW_PUBLIC_KEY`, `FLW_WEBHOOK_HASH` | Flutterwave MoMo checkout. Set the webhook URL in Flutterwave dashboard: `https://YOUR-APP/payments/webhook` |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Web Push. Generate with `pip install py-vapid && vapid --gen` |
+| `AT_USERNAME`, `AT_API_KEY` | Africa's Talking SMS (`AT_USERNAME=sandbox` for free testing) |
+
+## Speed: Cloudflare CDN (free)
+
+The app already sends long cache headers for static files and CDN-friendly headers
+(`s-maxage=120`) on the anonymous homepage. To finish the setup:
+
+1. Sign up at cloudflare.com → **Add site** → `mymarket.ug` → Free plan
+2. Change your domain's nameservers at your registrar to the two Cloudflare ones
+3. Add DNS records: `A @ → Render IP` and `CNAME * → your-app.onrender.com` (both **proxied**, orange cloud)
+4. Cloudflare → Caching → **Cache Rule**: cache `/static/*` for 1 month, homepage for 2 minutes
+
+Result: pages are served from Cloudflare's edge (Kampala gets Mombasa/Nairobi edge), and your
+Render free dyno handles a fraction of the traffic.
 
 ## Tech stack
 
@@ -66,21 +93,27 @@ Default admin login: **admin@mymarket.ug / admin123** (set `ADMIN_EMAIL`/`ADMIN_
 ├── render.yaml             # Render blueprint (web + Postgres)
 ├── .env.example
 └── app/
-    ├── __init__.py         # app factory, admin bootstrap
+    ├── __init__.py         # app factory, admin bootstrap, auto-migrations
     ├── extensions.py       # db, login manager
-    ├── models.py           # users, vendors, products, payments, market_days, analytics, ad_campaigns
-    ├── utils.py            # slugify, uploads, sorting, upload limits
+    ├── models.py           # users, vendors, products, payments, market_days, analytics, ad_campaigns, reviews
+    ├── payments.py         # Flutterwave checkout + verification
+    ├── push.py             # Web Push (VAPID/pywebpush)
+    ├── sms.py              # Africa's Talking SMS
+    ├── utils.py            # slugify, image compression, sorting, upload limits
     ├── routes/
-    │   ├── main.py         # homepage, search, shop pages, market days, click tracking, PWA
+    │   ├── main.py         # homepage, search, shop pages, reviews, market days, click tracking, PWA
     │   ├── vendor.py       # auth + dashboard (products/analytics/payments/market days/ads)
-    │   ├── admin.py        # approvals, payments, market days, ad campaigns
-    │   └── cron.py         # daily maintenance jobs
+    │   ├── payments.py     # Flutterwave checkout, callback, webhook
+    │   ├── admin.py        # approvals, payments, market days, ad campaigns, analytics
+    │   └── cron.py         # daily maintenance jobs + push digests
     ├── templates/          # Jinja2 (Tailwind + Alpine.js)
     └── static/             # manifest.json, sw.js, icons, uploads/
 ```
 
 ## Roadmap ideas
 
-- Real payments via MTN MoMo / Airtel Money APIs (Flutterwave/PesaPal)
-- Web Push (VAPID) for live notifications
-- Product edit page, image compression, review/ratings
+- Vendor referral program (vendors earn credit for inviting vendors)
+- Featured-shop placements on the homepage
+- USSD fallback (*code#) for vendors without smartphones
+- Multi-photo products + video support
+- Delivery/courier integration for Kampala

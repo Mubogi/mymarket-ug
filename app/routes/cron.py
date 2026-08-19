@@ -48,5 +48,26 @@ def daily():
     results["boosts_expired"] = len(stale)
 
     db.session.commit()
+
+    # 4. Daily digest push: "You have N new shop views today"
+    from ..models import Analytics
+    from ..push import notify_user
+
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    digests_sent = 0
+    for v in Vendor.query.filter(Vendor.is_active.is_(True)).all():
+        views = Analytics.query.filter(
+            Analytics.vendor_id == v.id,
+            Analytics.type == "shop_view",
+            Analytics.created_at >= today_start,
+        ).count()
+        if views:
+            digests_sent += notify_user(
+                v.user_id, "MyMarket.ug daily update 📈",
+                f"You have {views} new shop views today!", "/vendor",
+            )
+    results["digest_pushes_sent"] = digests_sent
+
+    db.session.commit()
     results["ok"] = True
     return jsonify(results)

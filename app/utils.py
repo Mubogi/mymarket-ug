@@ -25,18 +25,28 @@ def unique_slug(name):
     return slug
 
 
-def save_upload(file_storage):
+def save_upload(file_storage, max_px=1000, quality=82):
+    """Save an uploaded image, downscaled + JPEG-compressed for fast mobile loads."""
     if not file_storage or not file_storage.filename:
         return None
     filename = secure_filename(file_storage.filename)
     name, ext = os.path.splitext(filename)
-    ext = ext.lower()
-    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+    if ext.lower() not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
         return None
     ts = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-    final = f"{slugify(name)[:40]}-{ts}{ext}"
+    final = f"{slugify(name)[:40]}-{ts}.jpg"
     os.makedirs(current_app.config["UPLOAD_FOLDER"], exist_ok=True)
-    file_storage.save(os.path.join(current_app.config["UPLOAD_FOLDER"], final))
+    dest = os.path.join(current_app.config["UPLOAD_FOLDER"], final)
+    try:
+        from PIL import Image
+
+        img = Image.open(file_storage.stream)
+        img = img.convert("RGB")
+        img.thumbnail((max_px, max_px))
+        img.save(dest, "JPEG", quality=quality, optimize=True)
+    except Exception:  # fall back to raw save if Pillow can't parse it
+        file_storage.stream.seek(0)
+        file_storage.save(dest)
     return f"/static/uploads/{final}"
 
 

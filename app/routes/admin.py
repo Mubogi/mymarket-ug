@@ -46,6 +46,63 @@ def dashboard():
     )
 
 
+@bp.route("/analytics")
+def analytics():
+    from sqlalchemy import func
+
+    from ..models import Analytics
+
+    revenue_by_type = dict(
+        db.session.query(Payment.type, func.sum(Payment.amount))
+        .filter(Payment.status == "paid")
+        .group_by(Payment.type)
+        .all()
+    )
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    monthly = {}
+    for (paid_at, amount) in (
+        db.session.query(Payment.paid_at, Payment.amount)
+        .filter(Payment.status == "paid", Payment.paid_at >= six_months_ago)
+        .all()
+    ):
+        key = paid_at.strftime("%Y-%m")
+        monthly[key] = monthly.get(key, 0) + amount
+    rev_month = sorted(monthly.items())
+    top_vendors = (
+        db.session.query(Vendor.shop_name, func.sum(Product.views_count))
+        .join(Product, Product.vendor_id == Vendor.id)
+        .group_by(Vendor.id)
+        .order_by(func.sum(Product.views_count).desc())
+        .limit(5)
+        .all()
+    )
+    top_categories = (
+        db.session.query(Product.category, func.count(Product.id))
+        .group_by(Product.category)
+        .order_by(func.count(Product.id).desc())
+        .all()
+    )
+    engagement = dict(
+        db.session.query(Analytics.type, func.count(Analytics.id))
+        .group_by(Analytics.type)
+        .all()
+    )
+    return render_template(
+        "admin/analytics.html",
+        total_revenue=sum(revenue_by_type.values()),
+        revenue_by_type=revenue_by_type,
+        rev_month_labels=[m for m, _ in rev_month],
+        rev_month_values=[v for _, v in rev_month],
+        top_vendors=top_vendors,
+        top_categories=top_categories,
+        engagement=engagement,
+        vendor_count=Vendor.query.count(),
+        active_vendor_count=Vendor.query.filter_by(is_active=True).count(),
+        product_count=Product.query.count(),
+        pending_payments=Payment.query.filter_by(status="pending").count(),
+    )
+
+
 @bp.route("/vendors/<int:vid>/approve", methods=["POST"])
 def approve_vendor(vid):
     v = Vendor.query.get_or_404(vid)
@@ -59,6 +116,11 @@ def approve_vendor(vid):
             p.status = "paid"
             p.paid_at = datetime.utcnow()
     db.session.commit()
+    from ..push import notify_all
+    from ..sms import send_sms
+
+    notify_all("New vendor on MyMarket.ug 🎉", f"{v.shop_name} just joined! Check out their shop.", f"/shop/{v.slug}")
+    send_sms(v.user.phone, f"Congratulations {v.user.name}! Your shop '{v.shop_name}' is now LIVE on MyMarket.ug at {v.slug}.mymarket.ug")
     flash(f"Vendor '{v.shop_name}' approved & verified.", "success")
     return redirect(url_for("admin.dashboard"))
 
@@ -105,6 +167,9 @@ def apply_payment_effect(payment):
         if product:
             product.is_boosted = True
             product.boost_expires_at = now + timedelta(days=1)
+            from ..push import notify_user
+
+            notify_user(v.user_id, "Product boosted 🚀", f"'{product.name}' is #1 in {product.category} for 24hrs!", "/vendor")
     elif payment.type == "market_day":
         booking = MarketDayBooking.query.filter_by(payment_id=payment.id).first()
         if booking:

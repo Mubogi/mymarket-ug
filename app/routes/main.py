@@ -6,10 +6,12 @@ from flask import (
     current_app,
     g,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
 )
+from flask_login import current_user
 
 from ..extensions import db
 from ..models import (
@@ -18,6 +20,7 @@ from ..models import (
     CITIES,
     MarketDay,
     Product,
+    Review,
     Vendor,
 )
 from ..utils import boosted_first, track
@@ -80,16 +83,22 @@ def index():
         qry = qry.filter(Product.category == category)
 
     products = boosted_first(qry.limit(200).all())
-    return render_template(
-        "index.html",
-        products=products,
-        categories=CATEGORIES,
-        cities=CITIES,
-        banner_days=upcoming_market_banner(),
-        q=q,
-        city=city,
-        category=category,
+    response = make_response(
+        render_template(
+            "index.html",
+            products=products,
+            categories=CATEGORIES,
+            cities=CITIES,
+            banner_days=upcoming_market_banner(),
+            q=q,
+            city=city,
+            category=category,
+        )
     )
+    # Let Cloudflare/other CDNs cache the homepage for anonymous visitors
+    if not current_user.is_authenticated:
+        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=120"
+    return response
 
 
 @bp.route("/shop/<slug>")
@@ -115,6 +124,25 @@ def product_view(product_id):
     db.session.commit()
     track(p.vendor_id, "product_view", p.id)
     return render_template("product.html", product=p)
+
+
+@bp.route("/product/<int:product_id>/review", methods=["POST"])
+def add_review(product_id):
+    p = Product.query.get_or_404(product_id)
+    rating = int(request.form.get("rating", 5))
+    if not 1 <= rating <= 5:
+        abort(400)
+    db.session.add(
+        Review(
+            product_id=p.id,
+            vendor_id=p.vendor_id,
+            reviewer_name=(request.form.get("reviewer_name") or "Customer").strip()[:120],
+            rating=rating,
+            comment=(request.form.get("comment") or "").strip()[:1000],
+        )
+    )
+    db.session.commit()
+    return redirect(f"/product/{p.id}#reviews")
 
 
 @bp.route("/go/whatsapp/<int:product_id>")
