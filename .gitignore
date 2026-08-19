@@ -5,3 +5,4 @@ instance/
 *.db
 app/static/uploads/*
 !app/static/uploads/.gitkeep
+server.log
