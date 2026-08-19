@@ -37,8 +37,10 @@ class Vendor(db.Model):
     slug = db.Column(db.String(80), unique=True, nullable=False, index=True)
     logo = db.Column(db.String(255))
     description = db.Column(db.Text)
-    location_city = db.Column(db.String(60), default="Kampala")
-    location_detail = db.Column(db.String(200))
+    location_city = db.Column(db.String(60), default="Kampala")  # district
+    location_area = db.Column(db.String(120))  # division/ward/town area
+    location_detail = db.Column(db.String(200))  # building / landmark
+    shop_no = db.Column(db.String(40))  # stall / shop number
     is_verified = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     subscription_expires_at = db.Column(db.DateTime)

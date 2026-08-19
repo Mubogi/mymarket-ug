@@ -36,7 +36,7 @@
 
   <!-- Tabs -->
   <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
-    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads')] %}
+    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads'),('settings','Settings')] %}
     <button @click="tab='{{ id }}'" :class="tab==='{{ id }}' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
       class="px-4 py-2 rounded-full font-semibold whitespace-nowrap">{{ label }}</button>
     {% endfor %}
@@ -185,6 +185,24 @@
       </div>
       {% else %}<p class="text-sm text-gray-500">No campaigns yet.</p>{% endfor %}
     </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section x-show="tab==='settings'">
+    <form method="post" action="/vendor/settings" enctype="multipart/form-data" class="bg-white border rounded-2xl p-4 space-y-3 max-w-md">
+      <h3 class="font-bold">Shop Settings</h3>
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-full bg-brand-50 border overflow-hidden grid place-items-center">
+          {% if v.logo %}<img src="{{ v.logo }}" class="object-cover w-full h-full">{% else %}🏪{% endif %}
+        </div>
+        <label class="text-sm text-gray-600">Change logo
+          <input type="file" name="logo" accept="image/*" class="text-sm mt-1">
+        </label>
+      </div>
+      <textarea name="description" rows="2" placeholder="Describe your shop" class="w-full border rounded-lg px-3 py-2">{{ v.description }}</textarea>
+      {% include "_location_fields.html" %}
+      <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-2.5">Save Settings</button>
+    </form>
   </section>
 </div>
 {% endblock %}

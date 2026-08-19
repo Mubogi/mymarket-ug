@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- MyMarket.ug badge: Ugandan crested crane on market green -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#15803d"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#166534" stroke-width="2"/>
+  <!-- legs -->
+  <line x1="30" y1="44" x2="28" y2="56" stroke="#1f2937" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="36" y1="44" x2="37" y2="56" stroke="#1f2937" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M24 56h6" stroke="#1f2937" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M34 56h6" stroke="#1f2937" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- body -->
+  <ellipse cx="32" cy="38" rx="12" ry="9" fill="#9ca3af"/>
+  <!-- wing -->
+  <path d="M22 36c4-6 14-8 20-3-3 6-13 9-20 3z" fill="#f9fafb"/>
+  <!-- tail plumes -->
+  <path d="M42 34c6-2 9 0 12 4-4 1-9 0-12-4z" fill="#6b7280"/>
+  <!-- neck -->
+  <path d="M26 33C24 26 24 20 27 16" stroke="#9ca3af" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <!-- head -->
+  <circle cx="28" cy="14" r="4.2" fill="#111827"/>
+  <!-- white cheek -->
+  <circle cx="29.5" cy="13" r="2.1" fill="#f9fafb"/>
+  <!-- red cheek patch -->
+  <circle cx="26.2" cy="15.4" r="1.6" fill="#dc2626"/>
+  <!-- beak -->
+  <path d="M24 14l-6 1.5 6 1.6z" fill="#374151"/>
+  <!-- golden crown fan -->
+  <g stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round">
+    <line x1="28" y1="10" x2="22" y2="3"/>
+    <line x1="29" y1="10" x2="26" y2="2"/>
+    <line x1="30" y1="10" x2="30" y2="1.5"/>
+    <line x1="31" y1="10" x2="34" y2="2"/>
+    <line x1="32" y1="10" x2="38" y2="3.5"/>
+  </g>
+  <g fill="#fbbf24">
+    <circle cx="22" cy="3" r="1.4"/><circle cx="26" cy="2" r="1.4"/><circle cx="30" cy="1.5" r="1.4"/>
+    <circle cx="34" cy="2" r="1.4"/><circle cx="38" cy="3.5" r="1.4"/>
+  </g>
+</svg>

@@ -17,8 +17,11 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def admin_required():
-    if not current_user.is_authenticated or not current_user.is_admin:
+    if not current_user.is_authenticated:
         abort(403)
+    if not current_user.is_admin:
+        flash("That area is for admins only.", "error")
+        abort(redirect(url_for("vendor.dashboard")))
 
 
 @bp.before_request

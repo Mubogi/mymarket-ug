@@ -78,7 +78,9 @@ def signup():
             slug=unique_slug(f["shop_name"]),
             description=f.get("description", ""),
             location_city=f.get("location_city", "Kampala"),
+            location_area=f.get("location_area", ""),
             location_detail=f.get("location_detail", ""),
+            shop_no=f.get("shop_no", ""),
         )
         logo = save_upload(request.files.get("logo"))
         if logo:
@@ -312,6 +314,26 @@ def request_ad():
     create_payment(v, budget, "ad_campaign", "Ad campaign budget")
     flash("Ad request submitted! We will create your ad and run it.", "success")
     return redirect(url_for("vendor.dashboard", tab="ads"))
+
+
+# ---------- Shop settings ----------
+@bp.route("/settings", methods=["POST"])
+@login_required
+def settings():
+    v = current_vendor()
+    if not v:
+        abort(403)
+    v.description = request.form.get("description", v.description)
+    v.location_city = request.form.get("location_city", v.location_city)
+    v.location_area = request.form.get("location_area", v.location_area)
+    v.location_detail = request.form.get("location_detail", v.location_detail)
+    v.shop_no = request.form.get("shop_no", v.shop_no)
+    logo = save_upload(request.files.get("logo"))
+    if logo:
+        v.logo = logo
+    db.session.commit()
+    flash("Shop settings saved!", "success")
+    return redirect(url_for("vendor.dashboard", tab="settings"))
 
 
 # ---------- Push subscriptions ----------

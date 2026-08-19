@@ -1,4 +1,4 @@
-# MyMarket.ug 🇺🇬
+# <img src="app/static/logo.svg" width="40" align="top"> MyMarket.ug 🇺🇬
 
 A mobile-first multi-vendor SaaS marketplace for Uganda. Vendors get their own shop
 (`theirname.mymarket.ug`), customers browse freely without login, and the admin
@@ -20,6 +20,8 @@ approves vendors and tracks payments.
 - **Ratings & reviews**: customers review products without login; stars show on product pages and cards
 - **SMS (Africa's Talking)**: signup confirmation, vendor approval, payment confirmation texts
 - **Admin analytics** (`/admin/analytics`): revenue by type & month, engagement funnel, top vendors/categories
+- **Uganda location picker**: cascading District → Area/Division/Ward → building/landmark → shop/stall number; editable anytime in the vendor Settings tab
+- **Download App**: "⬇ Download App" button in the header triggers the native PWA install prompt (with iOS instructions fallback)
 
 ## Optional integrations (env vars)
 
@@ -57,6 +59,26 @@ python run.py                 # http://localhost:5000
 ```
 
 Default admin login: **admin@mymarket.ug / admin123** (set `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars to change).
+
+### "I can't log in as admin!"
+
+The admin password **always syncs with the `ADMIN_PASSWORD` environment variable** on every
+app boot. On Render: Environment → set `ADMIN_EMAIL` and `ADMIN_PASSWORD` to values you know →
+Save (Render redeploys) → log in at `/vendor/login`. If you never set them, the defaults above
+apply. Also keep `SECRET_KEY` fixed — if it regenerates, everyone gets logged out on redeploy.
+
+### Where does the Mobile Money go?
+
+Payments run through **your own Flutterwave merchant account** — the app never holds money:
+
+1. Create a free business account at [flutterwave.com/ug](https://flutterwave.com/ug) and complete KYC
+2. Dashboard → Settings → API → copy keys into Render env vars (`FLW_SECRET_KEY`, `FLW_PUBLIC_KEY`, `FLW_WEBHOOK_HASH`)
+3. Settings → Webhooks → add `https://YOUR-APP.onrender.com/payments/webhook` with your secret hash
+4. Vendor payments (MTN MoMo / Airtel Money) land in **your Flutterwave balance**; withdraw to your
+   bank or MoMo from the Flutterwave dashboard (Transfers)
+
+Until keys are added, the dashboard shows "Online checkout not enabled yet" and payments stay manual:
+vendor MoMos you directly and you tap **Mark Paid** in `/admin`.
 
 ## Deploy on Render.com (free tier)
 

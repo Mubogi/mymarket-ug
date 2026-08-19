@@ -11,10 +11,7 @@
     <input name="password" type="password" required minlength="6" placeholder="Password" class="w-full border rounded-lg px-3 py-2">
     <hr>
     <input name="shop_name" required placeholder="Shop name e.g. John Shoes" class="w-full border rounded-lg px-3 py-2">
-    <select name="location_city" class="w-full border rounded-lg px-3 py-2">
-      {% for c in cities %}<option>{{ c }}</option>{% endfor %}
-    </select>
-    <input name="location_detail" placeholder="Location detail e.g. Nakasero Market, Stall 23" class="w-full border rounded-lg px-3 py-2">
+    {% set v = None %}{% include "_location_fields.html" %}
     <textarea name="description" placeholder="Describe your shop" class="w-full border rounded-lg px-3 py-2" rows="2"></textarea>
     <label class="block text-sm text-gray-600">Shop logo (optional)
       <input type="file" name="logo" accept="image/*" class="w-full text-sm mt-1">
