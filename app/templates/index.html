@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="get" class="mb-4">
+  <div class="flex rounded-full border-2 border-brand-600 overflow-hidden bg-white shadow-sm">
+    <input name="q" value="{{ q }}" placeholder="Search products, shops, vendors" class="flex-1 px-4 py-3 outline-none">
+    <button class="bg-brand-600 text-white px-5 font-semibold">Search</button>
+  </div>
+</form>
+
+<!-- City filter -->
+<div class="flex gap-2 overflow-x-auto pb-2 mb-3 text-sm" x-data>
+  {% for c in ['All Cities'] + cities %}
+    <a href="/?city={{ '' if loop.first else c }}&q={{ q }}&category={{ category }}"
+       class="px-3 py-1.5 rounded-full border whitespace-nowrap {{ 'bg-brand-600 text-white border-brand-600' if (loop.first and not city) or city == c else 'bg-white' }}">{{ c }}</a>
+  {% endfor %}
+</div>
+
+<!-- Category buttons -->
+<div class="grid grid-cols-5 gap-2 mb-5 text-center text-xs">
+  {% for c in categories %}
+    <a href="/?category={{ c }}&q={{ q }}&city={{ city }}" class="rounded-xl p-2 border {{ 'bg-brand-600 text-white' if category == c else 'bg-brand-50' }}">
+      <span class="block text-lg">{% if c=='Phones' %}📱{% elif c=='Clothes' %}👕{% elif c=='Shoes' %}👟{% elif c=='Bags' %}👜{% else %}🔌{% endif %}</span>{{ c }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if products %}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+  {% for p in products %}
+  <a href="/product/{{ p.id }}" class="bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow">
+    <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
+      {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full">{% else %}<span class="text-4xl">🛍️</span>{% endif %}
+    </div>
+    <div class="p-2">
+      {% if p.boosted_now %}<span class="text-[10px] bg-amber-400 text-black font-bold px-1.5 rounded">BOOSTED</span>{% endif %}
+      <div class="font-semibold text-sm line-clamp-1">{{ p.name }}</div>
+      <div class="text-brand-700 font-bold text-sm">UGX {{ p.price|ugx }}</div>
+      <div class="text-[11px] text-gray-500 flex items-center gap-1">
+        {{ p.vendor.shop_name }}
+        {% if p.vendor.is_verified %}<span class="text-brand-600" title="Verified">✔</span>{% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+  <div class="text-center py-16 text-gray-500">
+    <p class="text-5xl mb-3">🔍</p>
+    <p>No products found. Try a different search.</p>
+  </div>
+{% endif %}
+
+<div class="mt-10 bg-brand-50 border border-brand-100 rounded-2xl p-6 text-center">
+  <h2 class="text-xl font-bold text-brand-700">Sell on MyMarket.ug</h2>
+  <p class="text-sm text-gray-600 mt-1">One-time UGX 10,000 setup. Get your own shop at <b>yourname.mymarket.ug</b></p>
+  <a href="/vendor/signup" class="mt-3 inline-block px-6 py-2.5 rounded-full bg-brand-600 text-white font-bold">Apply to be a Vendor</a>
+</div>
+{% endblock %}

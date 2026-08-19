@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Vendor Dashboard — MyMarket.ug{% endblock %}
+{% block content %}
+<div x-data="{ tab: '{{ tab }}' }">
+  <div class="flex items-center gap-3 mb-1">
+    <h1 class="text-xl font-extrabold text-brand-700">{{ v.shop_name }}</h1>
+    {% if v.is_verified %}<span class="text-xs bg-brand-600 text-white px-2 py-0.5 rounded-full">✔ Verified</span>{% endif %}
+    {% if not v.is_active %}<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Inactive</span>{% endif %}
+  </div>
+  <p class="text-sm text-gray-500 mb-4">
+    Shop: <a class="text-brand-700 font-semibold" href="/shop/{{ v.slug }}">{{ v.slug }}.mymarket.ug</a>
+    {% if v.subscription_expires_at %} · Subscription: {{ v.subscription_expires_at.strftime('%d %b %Y') }}{% endif %}
+  </p>
+
+  <!-- Tabs -->
+  <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
+    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads')] %}
+    <button @click="tab='{{ id }}'" :class="tab==='{{ id }}' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
+      class="px-4 py-2 rounded-full font-semibold whitespace-nowrap">{{ label }}</button>
+    {% endfor %}
+  </div>
+
+  <!-- PRODUCTS -->
+  <section x-show="tab==='products'">
+    <div class="bg-white border rounded-2xl p-4 mb-4">
+      <h2 class="font-bold mb-2">Add Product <span class="text-xs text-gray-500">({{ v.products_uploaded_this_month }}/{{ upload_limit }} used this month)</span></h2>
+      {% if v.products_uploaded_this_month >= upload_limit %}
+        <div class="bg-amber-100 text-amber-800 rounded-lg p-3 text-sm mb-2">Free limit reached. Pay <b>UGX 5,000</b> to upload 10 more.</div>
+        <form method="post" action="/vendor/pay/pro_upload"><button class="px-4 py-2 bg-brand-600 text-white rounded-full font-bold text-sm">Pay 5k for Pro Upload</button></form>
+      {% else %}
+      <form method="post" action="/vendor/products/add" enctype="multipart/form-data" class="grid sm:grid-cols-2 gap-2">
+        <input name="name" required placeholder="Product name" class="border rounded-lg px-3 py-2">
+        <input name="price" required type="number" min="0" placeholder="Price (UGX)" class="border rounded-lg px-3 py-2">
+        <select name="category" class="border rounded-lg px-3 py-2">
+          {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+        </select>
+        <input type="file" name="image" accept="image/*" class="text-sm self-center">
+        <input name="image_url" placeholder="...or paste image URL" class="border rounded-lg px-3 py-2 sm:col-span-2">
+        <textarea name="description" placeholder="Description" class="border rounded-lg px-3 py-2 sm:col-span-2" rows="2"></textarea>
+        <button class="sm:col-span-2 bg-brand-600 text-white font-bold rounded-xl py-2.5">Add Product</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {% for p in v.products %}
+      <div class="border rounded-xl overflow-hidden bg-white">
+        <div class="aspect-square bg-brand-50 grid place-items-center overflow-hidden">
+          {% if p.image_url %}<img src="{{ p.image_url }}" class="object-cover w-full h-full">{% else %}🛍️{% endif %}
+        </div>
+        <div class="p-2 text-sm">
+          {% if p.boosted_now %}<span class="text-[10px] bg-amber-400 font-bold px-1.5 rounded">BOOSTED until {{ p.boost_expires_at.strftime('%d %b %H:%M') }}</span>{% endif %}
+          <div class="font-semibold line-clamp-1">{{ p.name }}</div>
+          <div class="text-brand-700 font-bold">UGX {{ p.price|ugx }}</div>
+          <div class="text-xs text-gray-400">{{ p.views_count }} views</div>
+          <div class="flex gap-1 mt-1">
+            {% if not p.boosted_now %}
+            <form method="post" action="/vendor/products/{{ p.id }}/boost"><button class="text-xs bg-amber-400 font-bold px-2 py-1 rounded">🚀 Boost 5k/day</button></form>
+            {% endif %}
+            <form method="post" action="/vendor/products/{{ p.id }}/delete" onsubmit="return confirm('Delete this product?')"><button class="text-xs text-red-600 px-2 py-1">Delete</button></form>
+          </div>
+        </div>
+      </div>
+      {% else %}<p class="col-span-full text-gray-500 text-sm">No products yet.</p>{% endfor %}
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section x-show="tab==='analytics'">
+    <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.shop_view }}</div><div class="text-xs text-gray-500">Shop views</div></div>
+      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.product_view }}</div><div class="text-xs text-gray-500">Product views</div></div>
+      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.whatsapp_click + stats.call_click }}</div><div class="text-xs text-gray-500">WhatsApp/Call clicks</div></div>
+    </div>
+    <div class="bg-white border rounded-2xl p-4"><canvas id="chart" height="160"></canvas></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: { labels: {{ chart_labels|tojson }}, datasets: [{ label: 'Views (14 days)', data: {{ chart_values|tojson }}, borderColor: '#15803d', backgroundColor: '#dcfce7', fill: true, tension: .3 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+    </script>
+  </section>
+
+  <!-- PAYMENTS -->
+  <section x-show="tab==='payments'">
+    <div class="grid sm:grid-cols-2 gap-3 mb-4">
+      <div class="border rounded-2xl p-4 bg-white">
+        <h3 class="font-bold">Subscription</h3>
+        <p class="text-sm text-gray-500">Stay Active, Verified & on page 1.</p>
+        <p class="text-sm mt-1">Expires: <b>{{ v.subscription_expires_at.strftime('%d %b %Y') if v.subscription_expires_at else '—' }}</b></p>
+        <form method="post" action="/vendor/pay/subscription" class="mt-2"><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.SUBSCRIPTION_FEE|ugx }}/month</button></form>
+      </div>
+      <div class="border rounded-2xl p-4 bg-white">
+        <h3 class="font-bold">Pro Upload</h3>
+        <p class="text-sm text-gray-500">10 extra products this month.</p>
+        <form method="post" action="/vendor/pay/pro_upload" class="mt-2"><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.PRO_UPLOAD_FEE|ugx }}</button></form>
+      </div>
+    </div>
+    <h3 class="font-bold mb-2">Payment history</h3>
+    <div class="space-y-2">
+      {% for p in payments %}
+      <div class="flex items-center justify-between bg-white border rounded-xl px-3 py-2 text-sm">
+        <span>{{ p.type.replace('_',' ') }} {% if p.note %}<span class="text-gray-400">· {{ p.note }}</span>{% endif %}</span>
+        <span class="font-bold">UGX {{ p.amount|ugx }}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if p.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ p.status }}</span>
+      </div>
+      {% else %}<p class="text-sm text-gray-500">No payments yet.</p>{% endfor %}
+    </div>
+  </section>
+
+  <!-- MARKET DAYS -->
+  <section x-show="tab==='market'">
+    <div class="grid sm:grid-cols-2 gap-3">
+      {% for d in market_days %}
+      <div class="border rounded-2xl p-4 bg-white">
+        <div class="flex justify-between"><b>{{ d.market_name }}</b><span class="text-xs bg-brand-100 text-brand-700 px-2 rounded-full">{{ d.city }}</span></div>
+        <p class="text-sm text-gray-500">📅 {{ d.date.strftime('%A %d %b %Y') }} · 👥 {{ d.bookings|length }} booked</p>
+        {% set b = my_bookings.get(d.id) %}
+        {% if b %}
+          <p class="text-sm mt-2 text-brand-700 font-semibold">✔ Booked ({{ b.status }})</p>
+        {% else %}
+        <form method="post" action="/vendor/market-days/{{ d.id }}/book" class="mt-2">
+          <button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Book slot — UGX {{ d.fee_amount|ugx }}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}<p class="text-sm text-gray-500">No upcoming market days.</p>{% endfor %}
+    </div>
+  </section>
+
+  <!-- ADS -->
+  <section x-show="tab==='ads'">
+    <div class="bg-white border rounded-2xl p-4 mb-4">
+      <h3 class="font-bold mb-1">Run Ad For Me</h3>
+      <p class="text-sm text-gray-500 mb-2">We create the ad copy and run it on Facebook or TikTok. Min budget UGX 10,000.</p>
+      <form method="post" action="/vendor/ads/request" class="grid sm:grid-cols-3 gap-2">
+        <select name="product_id" class="border rounded-lg px-3 py-2">
+          <option value="">Whole shop</option>
+          {% for p in v.products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+        <select name="platform" class="border rounded-lg px-3 py-2"><option>Facebook</option><option>TikTok</option></select>
+        <input name="budget" type="number" min="10000" value="10000" class="border rounded-lg px-3 py-2" placeholder="Budget UGX">
+        <button class="sm:col-span-3 bg-brand-600 text-white font-bold rounded-xl py-2.5">Request Ad Campaign</button>
+      </form>
+    </div>
+    <div class="space-y-2">
+      {% for c in campaigns %}
+      <div class="bg-white border rounded-xl p-3 text-sm">
+        <div class="flex justify-between">
+          <b>{{ c.platform }} ad — {{ c.product.name if c.product else 'Whole shop' }}</b>
+          <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if c.status=='active' else 'bg-amber-100 text-amber-700' }}">{{ c.status }}</span>
+        </div>
+        <p class="text-gray-500">Budget UGX {{ c.budget|ugx }} · {{ c.clicks }} clicks</p>
+        {% if c.ad_copy %}<p class="mt-1 italic">"{{ c.ad_copy }}"</p>{% endif %}
+      </div>
+      {% else %}<p class="text-sm text-gray-500">No campaigns yet.</p>{% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

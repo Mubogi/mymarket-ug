@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Market Days — MyMarket.ug{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-extrabold text-brand-700 mb-4">Upcoming Market Days</h1>
+{% if days %}
+<div class="grid sm:grid-cols-2 gap-3">
+  {% for d in days %}
+  <div class="border rounded-2xl p-4 bg-white shadow-sm">
+    <div class="flex items-center justify-between">
+      <h2 class="font-bold">{{ d.market_name }}</h2>
+      <span class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded-full font-semibold">{{ d.city }}</span>
+    </div>
+    <p class="text-sm text-gray-600 mt-1">📅 {{ d.date.strftime('%A %d %B %Y') }}</p>
+    <p class="text-sm text-gray-600">👥 {{ d.bookings|length }} vendors booked</p>
+    <div class="mt-3 flex items-center justify-between">
+      <span class="font-bold text-brand-700">UGX {{ d.fee_amount|ugx }}</span>
+      <a href="/vendor/login" class="px-4 py-1.5 rounded-full bg-brand-600 text-white text-sm font-bold">Vendor: Book your slot</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+  <p class="text-gray-500">No upcoming market days yet. Check back soon!</p>
+{% endif %}
+{% endblock %}

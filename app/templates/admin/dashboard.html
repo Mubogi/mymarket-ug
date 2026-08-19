@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Admin — MyMarket.ug{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-extrabold text-brand-700 mb-4">Admin Panel</h1>
+
+{% if expiring %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-sm">
+  <b>⚠ Subscriptions expiring within 5 days:</b>
+  {% for v in expiring %}<span class="inline-block mr-2">{{ v.shop_name }} ({{ v.subscription_expires_at.strftime('%d %b') }})</span>{% endfor %}
+</div>
+{% endif %}
+
+<!-- VENDORS -->
+<h2 class="font-bold mt-6 mb-2">Vendors</h2>
+<div class="space-y-2">
+  {% for v in vendors %}
+  <div class="bg-white border rounded-xl p-3 text-sm flex flex-wrap items-center gap-2">
+    <b>{{ v.shop_name }}</b>
+    <span class="text-gray-500">/shop/{{ v.slug }}</span>
+    <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if v.is_active else 'bg-red-100 text-red-700' }}">{{ 'Active' if v.is_active else 'Inactive' }}</span>
+    {% if v.is_verified %}<span class="text-xs bg-brand-600 text-white px-2 py-0.5 rounded-full">✔ Verified</span>{% endif %}
+    <span class="text-xs text-gray-400">Sub: {{ v.subscription_expires_at.strftime('%d %b %Y') if v.subscription_expires_at else '—' }}</span>
+    <span class="ml-auto flex gap-2">
+      {% if not v.is_active %}
+      <form method="post" action="/admin/vendors/{{ v.id }}/approve"><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Approve & Verify</button></form>
+      {% endif %}
+      <form method="post" action="/admin/vendors/{{ v.id }}/toggle"><button class="text-xs border border-gray-300 px-3 py-1.5 rounded-full">{{ 'Deactivate' if v.is_active else 'Activate' }}</button></form>
+    </span>
+  </div>
+  {% else %}<p class="text-sm text-gray-500">No vendors yet.</p>{% endfor %}
+</div>
+
+<!-- PAYMENTS -->
+<h2 class="font-bold mt-6 mb-2">Payments</h2>
+<div class="space-y-2">
+  {% for p in payments %}
+  <div class="bg-white border rounded-xl px-3 py-2 text-sm flex flex-wrap items-center gap-2">
+    <b>{{ p.vendor.shop_name }}</b><span class="text-gray-500">{{ p.type.replace('_',' ') }}</span>
+    {% if p.note %}<span class="text-gray-400">· {{ p.note }}</span>{% endif %}
+    <span class="font-bold">UGX {{ p.amount|ugx }}</span>
+    <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if p.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ p.status }}</span>
+    {% if p.status == 'pending' %}
+    <form method="post" action="/admin/payments/{{ p.id }}/mark-paid" class="ml-auto"><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Mark Paid</button></form>
+    {% endif %}
+  </div>
+  {% else %}<p class="text-sm text-gray-500">No payments yet.</p>{% endfor %}
+</div>
+
+<!-- MARKET DAYS -->
+<h2 class="font-bold mt-6 mb-2">Market Days</h2>
+<form method="post" action="/admin/market-days/create" class="bg-white border rounded-xl p-3 grid sm:grid-cols-5 gap-2 text-sm mb-3">
+  <input name="market_name" required placeholder="Market name" class="border rounded-lg px-2 py-1.5">
+  <input name="city" required placeholder="City" class="border rounded-lg px-2 py-1.5">
+  <input name="date" type="date" required class="border rounded-lg px-2 py-1.5">
+  <input name="fee_amount" type="number" value="2000" min="2000" max="5000" class="border rounded-lg px-2 py-1.5">
+  <button class="bg-brand-600 text-white font-bold rounded-lg">Create</button>
+</form>
+<div class="space-y-2">
+  {% for d in market_days %}
+  <div class="bg-white border rounded-xl px-3 py-2 text-sm">
+    <b>{{ d.market_name }}</b> · {{ d.city }} · {{ d.date.strftime('%d %b %Y') }} · UGX {{ d.fee_amount|ugx }} · {{ d.bookings|length }} bookings
+    {% for b in d.bookings %}<span class="text-xs text-gray-500">({{ b.vendor.shop_name }}: {{ b.status }})</span>{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ADS -->
+<h2 class="font-bold mt-6 mb-2">Ad Campaigns</h2>
+<div class="space-y-2">
+  {% for c in campaigns %}
+  <div class="bg-white border rounded-xl p-3 text-sm">
+    <div class="flex flex-wrap gap-2 items-center">
+      <b>{{ c.vendor.shop_name }}</b><span class="text-gray-500">{{ c.platform }} — {{ c.product.name if c.product else 'Whole shop' }}</span>
+      <span class="font-bold">UGX {{ c.budget|ugx }}</span>
+      <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if c.status=='active' else 'bg-amber-100 text-amber-700' }}">{{ c.status }}</span>
+      <span class="text-xs text-gray-400">{{ c.clicks }} clicks</span>
+    </div>
+    {% if c.status in ['requested','active'] %}
+    <form method="post" action="/admin/ads/{{ c.id }}/launch" class="flex gap-2 mt-2">
+      <input name="ad_copy" placeholder="Ad copy e.g. 'Quality phones at best prices in Kampala!'" value="{{ c.ad_copy or '' }}" class="flex-1 border rounded-lg px-2 py-1.5 text-sm">
+      <button class="text-xs bg-brand-600 text-white font-bold px-3 rounded-lg">{{ 'Launch' if c.status=='requested' else 'Update copy' }}</button>
+    </form>
+    <form method="post" action="/admin/ads/{{ c.id }}/complete" class="mt-1"><button class="text-xs text-gray-500">Mark completed</button></form>
+    {% elif c.ad_copy %}<p class="italic mt-1">"{{ c.ad_copy }}"</p>
+    {% endif %}
+  </div>
+  {% else %}<p class="text-sm text-gray-500">No campaigns yet.</p>{% endfor %}
+</div>
+{% endblock %}
