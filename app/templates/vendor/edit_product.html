@@ -4,6 +4,7 @@
 <div class="max-w-md mx-auto">
   <h1 class="text-xl font-extrabold text-brand-700 mb-3">Edit Product</h1>
   <form method="post" enctype="multipart/form-data" class="space-y-3 bg-white border rounded-2xl p-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="aspect-square w-32 bg-brand-50 rounded-xl overflow-hidden grid place-items-center">
       {% if p.image_url %}<img src="{{ p.image_url }}" class="object-cover w-full h-full">{% else %}🛍️{% endif %}
     </div>

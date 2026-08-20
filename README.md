@@ -48,6 +48,19 @@ The app already sends long cache headers for static files and CDN-friendly heade
 Result: pages are served from Cloudflare's edge (Kampala gets Mombasa/Nairobi edge), and your
 Render free dyno handles a fraction of the traffic.
 
+## Security (hardened)
+
+- **CSRF protection** on every form (Flask-WTF); machine endpoints (cron, webhooks) use secret verification instead
+- **Rate limiting** (Flask-Limiter): login 10/min, signup 8/hour, reviews 10/hour, checkout 20/hour per IP — blocks brute force and spam
+- **Security headers**: CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS (on HTTPS)
+- **Secure sessions**: HttpOnly + SameSite=Lax + Secure cookies (Secure auto-disables for local `FLASK_DEBUG=1` dev), session cleared on login (anti-fixation)
+- **Upload validation**: every upload is verified as a real image by Pillow — disguised scripts/HTML are rejected, never stored; 4MB cap
+- **Timing-safe secret compares** (cron secret, Flutterwave webhook hash) via `hmac.compare_digest`
+- **Secrets**: `SECRET_KEY`/`CRON_SECRET` are random per boot if unset — always set them as env vars in production
+- **No debug in production**: `run.py` only enables the debugger with `FLASK_DEBUG=1`; Render runs gunicorn without it
+- **Passwords**: Werkzeug scrypt hashing, minimum 8 characters
+- **Ownership checks**: vendors can only edit/delete/boost/pay for their own products and payments; admin area guarded by role, redirects non-admins
+
 ## Tech stack
 
 Python + Flask · SQLAlchemy (SQLite dev / Postgres prod) · Jinja2 · Tailwind CSS · Alpine.js · Flask-Login · Chart.js

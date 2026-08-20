@@ -9,12 +9,13 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
-from ..extensions import db
+from ..extensions import db, limiter
 from ..models import (
     AdCampaign,
     Analytics,
@@ -57,9 +58,13 @@ def create_payment(vendor, amount, type_, note=None):
 
 # ---------- Auth ----------
 @bp.route("/signup", methods=["GET", "POST"])
+@limiter.limit("8 per hour")
 def signup():
     if request.method == "POST":
         f = request.form
+        if len(f.get("password", "")) < 8:
+            flash("Password must be at least 8 characters.", "error")
+            return redirect(url_for("vendor.signup"))
         if User.query.filter_by(email=f["email"].lower()).first():
             flash("Email already registered. Please log in.", "error")
             return redirect(url_for("vendor.login"))
@@ -107,10 +112,12 @@ def signup():
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         user = User.query.filter_by(email=request.form["email"].lower()).first()
         if user and user.check_password(request.form["password"]):
+            session.clear()  # anti session-fixation: fresh session on privilege change
             login_user(user)
             if user.is_admin:
                 return redirect(url_for("admin.dashboard"))

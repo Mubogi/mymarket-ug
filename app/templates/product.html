@@ -41,6 +41,7 @@
       {% else %}<p class="text-sm text-gray-500">No reviews yet. Be the first!</p>{% endfor %}
     </div>
     <form method="post" action="/product/{{ product.id }}/review" class="bg-white border rounded-2xl p-3 space-y-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="flex gap-2">
         <input name="reviewer_name" placeholder="Your name (optional)" class="flex-1 border rounded-lg px-3 py-2 text-sm">
         <select name="rating" class="border rounded-lg px-2 py-2 text-sm">

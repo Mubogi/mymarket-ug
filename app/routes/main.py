@@ -23,7 +23,8 @@ from ..models import (
     Review,
     Vendor,
 )
-from ..utils import boosted_first, track
+from ..extensions import limiter
+from ..utils import boosted_first, escape_like, track
 
 bp = Blueprint("main", __name__)
 
@@ -69,7 +70,7 @@ def index():
         .order_by(db.desc(Product.is_boosted), db.desc(Product.created_at))
     )
     if q:
-        like = f"%{q}%"
+        like = f"%{escape_like(q)}%"
         qry = qry.filter(
             db.or_(
                 Product.name.ilike(like),
@@ -127,6 +128,7 @@ def product_view(product_id):
 
 
 @bp.route("/product/<int:product_id>/review", methods=["POST"])
+@limiter.limit("10 per hour")
 def add_review(product_id):
     p = Product.query.get_or_404(product_id)
     rating = int(request.form.get("rating", 5))

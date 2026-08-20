@@ -1,3 +1,4 @@
+import hmac
 from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request
@@ -9,9 +10,9 @@ bp = Blueprint("cron", __name__, url_prefix="/cron")
 
 
 def authorized():
-    return request.args.get("secret") == current_app.config["CRON_SECRET"] or (
-        request.headers.get("X-Cron-Secret") == current_app.config["CRON_SECRET"]
-    )
+    secret = current_app.config["CRON_SECRET"]
+    provided = request.args.get("secret") or request.headers.get("X-Cron-Secret") or ""
+    return hmac.compare_digest(provided, secret)
 
 
 @bp.route("/daily", methods=["POST", "GET"])

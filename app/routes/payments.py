@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+import hmac
 
 from flask import (
     Blueprint,
@@ -14,7 +15,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from .. import payments as flw
-from ..extensions import db
+from ..extensions import db, limiter
 from ..models import Payment
 
 bp = Blueprint("payments", __name__)
@@ -36,6 +37,7 @@ def settle_payment(payment):
 
 
 @bp.route("/vendor/checkout/<int:payment_id>", methods=["POST"])
+@limiter.limit("20 per hour")
 @login_required
 def checkout(payment_id):
     """Start a Flutterwave checkout for a pending payment."""
@@ -86,7 +88,9 @@ def callback():
 def webhook():
     """Flutterwave server-to-server confirmation (source of truth)."""
     secret_hash = current_app.config.get("FLW_WEBHOOK_HASH", "")
-    if secret_hash and request.headers.get("verif-hash") != secret_hash:
+    if secret_hash and not hmac.compare_digest(
+        request.headers.get("verif-hash", ""), secret_hash
+    ):
         return jsonify({"ok": False}), 401
     data = request.get_json(silent=True) or {}
     event_data = data.get("data", {})

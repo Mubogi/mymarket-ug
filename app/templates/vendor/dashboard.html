@@ -23,7 +23,7 @@
       if (!key) { alert('Push notifications are not enabled on the server yet.'); return; }
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8Array(key) });
-      await fetch('/vendor/push/subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription: sub }) });
+      await fetch('/vendor/push/subscribe', { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}, body: JSON.stringify({ subscription: sub }) });
       document.getElementById('enablePush').classList.add('hidden');
       alert('Notifications enabled! 🔔');
     }
@@ -48,9 +48,11 @@
       <h2 class="font-bold mb-2">Add Product <span class="text-xs text-gray-500">({{ v.products_uploaded_this_month }}/{{ upload_limit }} used this month)</span></h2>
       {% if v.products_uploaded_this_month >= upload_limit %}
         <div class="bg-amber-100 text-amber-800 rounded-lg p-3 text-sm mb-2">Free limit reached. Pay <b>UGX 5,000</b> to upload 10 more.</div>
-        <form method="post" action="/vendor/pay/pro_upload"><button class="px-4 py-2 bg-brand-600 text-white rounded-full font-bold text-sm">Pay 5k for Pro Upload</button></form>
+        <form method="post" action="/vendor/pay/pro_upload">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="px-4 py-2 bg-brand-600 text-white rounded-full font-bold text-sm">Pay 5k for Pro Upload</button></form>
       {% else %}
       <form method="post" action="/vendor/products/add" enctype="multipart/form-data" class="grid sm:grid-cols-2 gap-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input name="name" required placeholder="Product name" class="border rounded-lg px-3 py-2">
         <input name="price" required type="number" min="0" placeholder="Price (UGX)" class="border rounded-lg px-3 py-2">
         <select name="category" class="border rounded-lg px-3 py-2">
@@ -78,9 +80,11 @@
           <div class="flex gap-1 mt-1">
             <a href="/vendor/products/{{ p.id }}/edit" class="text-xs border border-brand-600 text-brand-700 font-bold px-2 py-1 rounded">Edit</a>
             {% if not p.boosted_now %}
-            <form method="post" action="/vendor/products/{{ p.id }}/boost"><button class="text-xs bg-amber-400 font-bold px-2 py-1 rounded">🚀 Boost 5k/day</button></form>
+            <form method="post" action="/vendor/products/{{ p.id }}/boost">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs bg-amber-400 font-bold px-2 py-1 rounded">🚀 Boost 5k/day</button></form>
             {% endif %}
-            <form method="post" action="/vendor/products/{{ p.id }}/delete" onsubmit="return confirm('Delete this product?')"><button class="text-xs text-red-600 px-2 py-1">Delete</button></form>
+            <form method="post" action="/vendor/products/{{ p.id }}/delete" onsubmit="return confirm('Delete this product?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs text-red-600 px-2 py-1">Delete</button></form>
           </div>
         </div>
       </div>
@@ -113,12 +117,14 @@
         <h3 class="font-bold">Subscription</h3>
         <p class="text-sm text-gray-500">Stay Active, Verified & on page 1.</p>
         <p class="text-sm mt-1">Expires: <b>{{ v.subscription_expires_at.strftime('%d %b %Y') if v.subscription_expires_at else '—' }}</b></p>
-        <form method="post" action="/vendor/pay/subscription" class="mt-2"><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.SUBSCRIPTION_FEE|ugx }}/month</button></form>
+        <form method="post" action="/vendor/pay/subscription" class="mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.SUBSCRIPTION_FEE|ugx }}/month</button></form>
       </div>
       <div class="border rounded-2xl p-4 bg-white">
         <h3 class="font-bold">Pro Upload</h3>
         <p class="text-sm text-gray-500">10 extra products this month.</p>
-        <form method="post" action="/vendor/pay/pro_upload" class="mt-2"><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.PRO_UPLOAD_FEE|ugx }}</button></form>
+        <form method="post" action="/vendor/pay/pro_upload" class="mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Pay UGX {{ fees.PRO_UPLOAD_FEE|ugx }}</button></form>
       </div>
     </div>
     <h3 class="font-bold mb-2">Payment history</h3>
@@ -130,6 +136,7 @@
         <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if p.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ p.status }}</span>
         {% if p.status == 'pending' %}
         <form method="post" action="/vendor/checkout/{{ p.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <button class="text-xs bg-brand-600 text-white font-bold px-3 py-1 rounded-full">📱 Pay with Mobile Money</button>
         </form>
         {% endif %}
@@ -150,6 +157,7 @@
           <p class="text-sm mt-2 text-brand-700 font-semibold">✔ Booked ({{ b.status }})</p>
         {% else %}
         <form method="post" action="/vendor/market-days/{{ d.id }}/book" class="mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <button class="px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold">Book slot — UGX {{ d.fee_amount|ugx }}</button>
         </form>
         {% endif %}
@@ -164,6 +172,7 @@
       <h3 class="font-bold mb-1">Run Ad For Me</h3>
       <p class="text-sm text-gray-500 mb-2">We create the ad copy and run it on Facebook or TikTok. Min budget UGX 10,000.</p>
       <form method="post" action="/vendor/ads/request" class="grid sm:grid-cols-3 gap-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <select name="product_id" class="border rounded-lg px-3 py-2">
           <option value="">Whole shop</option>
           {% for p in v.products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
@@ -190,6 +199,7 @@
   <!-- SETTINGS -->
   <section x-show="tab==='settings'">
     <form method="post" action="/vendor/settings" enctype="multipart/form-data" class="bg-white border rounded-2xl p-4 space-y-3 max-w-md">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <h3 class="font-bold">Shop Settings</h3>
       <div class="flex items-center gap-3">
         <div class="w-14 h-14 rounded-full bg-brand-50 border overflow-hidden grid place-items-center">

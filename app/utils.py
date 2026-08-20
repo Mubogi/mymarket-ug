@@ -41,13 +41,22 @@ def save_upload(file_storage, max_px=1000, quality=82):
         from PIL import Image
 
         img = Image.open(file_storage.stream)
-        img = img.convert("RGB")
+        img.verify()  # reject files that are not really images
+        file_storage.stream.seek(0)
+        img = Image.open(file_storage.stream).convert("RGB")
         img.thumbnail((max_px, max_px))
         img.save(dest, "JPEG", quality=quality, optimize=True)
-    except Exception:  # fall back to raw save if Pillow can't parse it
-        file_storage.stream.seek(0)
-        file_storage.save(dest)
+    except Exception:
+        # Never save an unverified upload — blocks disguised HTML/JS payloads
+        if os.path.exists(dest):
+            os.remove(dest)
+        return None
     return f"/static/uploads/{final}"
+
+
+def escape_like(text):
+    """Escape SQL LIKE wildcards in user-supplied search text."""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def track(vendor_id, type_, product_id=None):

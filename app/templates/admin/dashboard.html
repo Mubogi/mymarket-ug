@@ -25,9 +25,11 @@
     <span class="text-xs text-gray-400">Sub: {{ v.subscription_expires_at.strftime('%d %b %Y') if v.subscription_expires_at else '—' }}</span>
     <span class="ml-auto flex gap-2">
       {% if not v.is_active %}
-      <form method="post" action="/admin/vendors/{{ v.id }}/approve"><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Approve & Verify</button></form>
+      <form method="post" action="/admin/vendors/{{ v.id }}/approve">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Approve & Verify</button></form>
       {% endif %}
-      <form method="post" action="/admin/vendors/{{ v.id }}/toggle"><button class="text-xs border border-gray-300 px-3 py-1.5 rounded-full">{{ 'Deactivate' if v.is_active else 'Activate' }}</button></form>
+      <form method="post" action="/admin/vendors/{{ v.id }}/toggle">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs border border-gray-300 px-3 py-1.5 rounded-full">{{ 'Deactivate' if v.is_active else 'Activate' }}</button></form>
     </span>
   </div>
   {% else %}<p class="text-sm text-gray-500">No vendors yet.</p>{% endfor %}
@@ -43,7 +45,8 @@
     <span class="font-bold">UGX {{ p.amount|ugx }}</span>
     <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-brand-100 text-brand-700' if p.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ p.status }}</span>
     {% if p.status == 'pending' %}
-    <form method="post" action="/admin/payments/{{ p.id }}/mark-paid" class="ml-auto"><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Mark Paid</button></form>
+    <form method="post" action="/admin/payments/{{ p.id }}/mark-paid" class="ml-auto">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-full">Mark Paid</button></form>
     {% endif %}
   </div>
   {% else %}<p class="text-sm text-gray-500">No payments yet.</p>{% endfor %}
@@ -52,6 +55,7 @@
 <!-- MARKET DAYS -->
 <h2 class="font-bold mt-6 mb-2">Market Days</h2>
 <form method="post" action="/admin/market-days/create" class="bg-white border rounded-xl p-3 grid sm:grid-cols-5 gap-2 text-sm mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <input name="market_name" required placeholder="Market name" class="border rounded-lg px-2 py-1.5">
   <input name="city" required placeholder="City" class="border rounded-lg px-2 py-1.5">
   <input name="date" type="date" required class="border rounded-lg px-2 py-1.5">
@@ -80,10 +84,12 @@
     </div>
     {% if c.status in ['requested','active'] %}
     <form method="post" action="/admin/ads/{{ c.id }}/launch" class="flex gap-2 mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <input name="ad_copy" placeholder="Ad copy e.g. 'Quality phones at best prices in Kampala!'" value="{{ c.ad_copy or '' }}" class="flex-1 border rounded-lg px-2 py-1.5 text-sm">
       <button class="text-xs bg-brand-600 text-white font-bold px-3 rounded-lg">{{ 'Launch' if c.status=='requested' else 'Update copy' }}</button>
     </form>
-    <form method="post" action="/admin/ads/{{ c.id }}/complete" class="mt-1"><button class="text-xs text-gray-500">Mark completed</button></form>
+    <form method="post" action="/admin/ads/{{ c.id }}/complete" class="mt-1">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><button class="text-xs text-gray-500">Mark completed</button></form>
     {% elif c.ad_copy %}<p class="italic mt-1">"{{ c.ad_copy }}"</p>
     {% endif %}
   </div>
