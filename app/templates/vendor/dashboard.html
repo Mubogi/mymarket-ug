@@ -36,7 +36,7 @@
 
   <!-- Tabs -->
   <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
-    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads'),('settings','Settings')] %}
+    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads'),('settings','Settings'),('chat','Chat')] %}
     <button @click="tab='{{ id }}'" :class="tab==='{{ id }}' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
       class="px-4 py-2 rounded-full font-semibold whitespace-nowrap">{{ label }}</button>
     {% endfor %}
@@ -193,6 +193,17 @@
         {% if c.ad_copy %}<p class="mt-1 italic">"{{ c.ad_copy }}"</p>{% endif %}
       </div>
       {% else %}<p class="text-sm text-gray-500">No campaigns yet.</p>{% endfor %}
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section x-show="tab==='chat'">
+    <div class="text-center py-8">
+      <div class="text-5xl mb-3">💬</div>
+      <h3 class="font-bold text-lg mb-2">Chat Inbox</h3>
+      <p class="text-sm text-gray-500 mb-4">Messages from customers and other vendors appear here. Chat with them about products, prices, or deliveries.</p>
+      <a href="/vendor/chat" class="inline-block px-5 py-2.5 bg-brand-600 text-white font-bold rounded-xl">Open Chat Inbox</a>
+      <p class="text-xs text-gray-400 mt-4">Customers can chat with you from your shop page — no login needed for them!</p>
     </div>
   </section>
 

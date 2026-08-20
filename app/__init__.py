@@ -34,6 +34,10 @@ def create_app(config_object=Config):
     csrf.exempt(cron.bp)
     csrf.exempt(payments.bp)
 
+    from .routes import chat as chat_routes
+
+    app.register_blueprint(chat_routes.bp)
+
     from .utils import ugx
 
     app.jinja_env.filters["ugx"] = ugx

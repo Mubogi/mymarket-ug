@@ -18,8 +18,9 @@
     <p class="text-xs text-gray-400 mt-1">{{ product.views_count }} views</p>
   </div>
   <div class="sticky bottom-3 flex gap-2 mt-6">
-    <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">💬 WhatsApp Vendor</a>
-    <a href="/go/call/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">📞 Call Vendor</a>
+    <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">💬 WhatsApp</a>
+    <a href="/go/call/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">📞 Call</a>
+    <a href="/chat/{{ product.vendor.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">💭 Chat</a>
   </div>
 
   <!-- REVIEWS -->

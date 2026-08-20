@@ -18,6 +18,9 @@
       📍 {{ (vendor.shop_no ~ ', ') if vendor.shop_no }}{{ vendor.location_detail or vendor.location_area or vendor.location_city }}{{ ' (' ~ vendor.location_area ~ ')' if vendor.location_area and vendor.location_detail }}, {{ vendor.location_city }}
     </p>
     {% if vendor.description %}<p class="text-sm text-gray-500 mt-1">{{ vendor.description }}</p>{% endif %}
+    <div class="flex gap-2 mt-3">
+      <a href="/chat/{{ vendor.id }}" class="text-xs px-3 py-1.5 rounded-full border-2 border-brand-600 text-brand-700 font-bold">💭 Chat with vendor</a>
+    </div>
   </div>
 </div>
 

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Chat — MyMarket.ug{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto">
+  <div class="flex items-center gap-3 mb-4">
+    <a href="/vendor/chat" class="text-brand-700">←</a>
+    <h1 class="font-bold">Chat</h1>
+  </div>
+
+  <div class="space-y-2 mb-4 max-h-[55vh] overflow-y-auto" id="chat-messages">
+    {% for m in messages %}
+      {% if m.sender_vendor_id == v.id %}
+      <div class="flex justify-end">
+        <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%] text-sm">
+          {{ m.message }}
+          <div class="text-[10px] text-brand-200 mt-0.5">{{ m.created_at.strftime('%d %b %H:%M') }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="flex justify-start">
+        <div class="bg-brand-50 border rounded-2xl rounded-bl-sm px-3 py-2 max-w-[80%] text-sm">
+          <div class="font-semibold text-brand-700 text-xs">{{ m.sender_name }}</div>
+          {{ m.message }}
+          <div class="text-[10px] text-gray-400 mt-0.5">{{ m.created_at.strftime('%d %b %H:%M') }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/vendor/chat/{{ thread_key }}/reply" class="sticky bottom-3 bg-white border rounded-2xl p-3 shadow space-y-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="flex gap-2">
+      <input name="message" required placeholder="Type a reply..." class="flex-1 border rounded-lg px-3 py-2.5 text-sm" autocomplete="off">
+      <button class="bg-brand-600 text-white font-bold rounded-xl px-4 py-2.5">➤</button>
+    </div>
+  </form>
+</div>
+<script>
+  const el = document.getElementById('chat-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+</script>
+{% endblock %}

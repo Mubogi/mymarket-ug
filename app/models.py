@@ -175,6 +175,24 @@ class Review(db.Model):
     vendor = db.relationship("Vendor", backref="reviews")
 
 
+class ChatMessage(db.Model):
+    __tablename__ = "chat_messages"
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"), nullable=False)
+    # 'customer' or 'vendor'
+    sender_type = db.Column(db.String(10), default="customer")
+    sender_name = db.Column(db.String(120), default="Customer")
+    sender_vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"))
+    # Identifies a guest customer (or a vendor-to-vendor thread)
+    visitor_key = db.Column(db.String(255), index=True)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    vendor = db.relationship("Vendor", foreign_keys=[vendor_id], backref="chat_messages")
+    sender_vendor = db.relationship("Vendor", foreign_keys=[sender_vendor_id])
+
+
 class PushSubscription(db.Model):
     __tablename__ = "push_subscriptions"
     id = db.Column(db.Integer, primary_key=True)

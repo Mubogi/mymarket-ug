@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ vendor.shop_name }} — MyMarket.ug{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto">
+  <div class="flex items-center gap-3 mb-4 bg-white border rounded-2xl p-3">
+    <div class="w-12 h-12 rounded-full bg-brand-50 border overflow-hidden grid place-items-center text-2xl">
+      {% if vendor.logo %}<img src="{{ vendor.logo }}" class="object-cover w-full h-full">{% else %}🏪{% endif %}
+    </div>
+    <div class="flex-1">
+      <a href="/shop/{{ vendor.slug }}" class="font-bold text-brand-700">{{ vendor.shop_name }}</a>
+      <p class="text-xs text-gray-500">{% if vendor.is_verified %}✔ Verified · {% endif %}{{ vendor.location_city }}</p>
+    </div>
+  </div>
+
+  <div class="space-y-2 mb-4 max-h-[50vh] overflow-y-auto" id="chat-messages">
+    {% for m in messages %}
+      {% if m.sender_type == 'vendor' %}
+      <div class="flex justify-start">
+        <div class="bg-brand-50 border rounded-2xl rounded-bl-sm px-3 py-2 max-w-[80%] text-sm">
+          <div class="font-semibold text-brand-700 text-xs">{{ m.sender_name }}</div>
+          {{ m.message }}
+          <div class="text-[10px] text-gray-400 mt-0.5">{{ m.created_at.strftime('%d %b %H:%M') }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="flex justify-end">
+        <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%] text-sm">
+          {{ m.message }}
+          <div class="text-[10px] text-brand-200 mt-0.5">{{ m.created_at.strftime('%d %b %H:%M') }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% else %}
+    <div class="text-center text-gray-400 text-sm py-8">Start the conversation — ask about a product, price, or delivery!</div>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/chat/{{ vendor.id }}/send" class="sticky bottom-3 bg-white border rounded-2xl p-3 shadow space-y-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="visitor_key" value="{{ visitor_key }}"/>
+    {% if not current_user.is_authenticated %}
+    <input name="sender_name" placeholder="Your name (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+    {% endif %}
+    <div class="flex gap-2">
+      <input name="message" required placeholder="Type a message..." class="flex-1 border rounded-lg px-3 py-2.5 text-sm" autocomplete="off">
+      <button class="bg-brand-600 text-white font-bold rounded-xl px-4 py-2.5">➤</button>
+    </div>
+  </form>
+
+  <a href="/shop/{{ vendor.slug }}" class="block text-center text-sm text-gray-500 mt-2">← Back to shop</a>
+</div>
+<script>
+  const el = document.getElementById('chat-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+</script>
+{% endblock %}
