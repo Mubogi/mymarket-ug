@@ -107,6 +107,16 @@ def analytics():
     )
 
 
+@bp.route("/seed-demo")
+def seed_demo():
+    """One-click seed of demo vendors + products (admin only, safe to re-run)."""
+    from seed_jdhub import run_seed_demo
+
+    run_seed_demo()
+    flash("Demo vendors & products seeded! 🎉", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
 @bp.route("/vendors/<int:vid>/approve", methods=["POST"])
 def approve_vendor(vid):
     v = Vendor.query.get_or_404(vid)

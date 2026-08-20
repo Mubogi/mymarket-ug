@@ -3,7 +3,10 @@
 {% block content %}
 <div class="flex items-center justify-between mb-4">
   <h1 class="text-2xl font-extrabold text-brand-700">Admin Panel</h1>
-  <a href="/admin/analytics" class="text-sm font-semibold text-brand-700">📊 Business analytics →</a>
+  <div class="flex gap-2">
+    <a href="/admin/seed-demo" class="text-sm px-3 py-1.5 rounded-full border border-amber-400 text-amber-700 font-semibold">🌱 Seed Demo Data</a>
+    <a href="/admin/analytics" class="text-sm px-3 py-1.5 rounded-full text-brand-700 font-semibold">📊 Analytics →</a>
+  </div>
 </div>
 
 {% if expiring %}
