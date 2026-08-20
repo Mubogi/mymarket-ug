@@ -1,26 +1,18 @@
 {# Cascading Uganda location picker: district → area → building/landmark → shop no #}
 <script src="/static/js/uganda-locations.js"></script>
-<div x-data="{
-    district: '{{ v.location_city if v else 'Kampala' }}',
-    area: '{{ v.location_area if v else '' }}',
-    areas: [],
-    updateAreas() { this.areas = window.UGANDA_LOCATIONS[this.district] || ['Other']; if (!this.areas.includes(this.area)) this.area = ''; }
-  }" x-init="updateAreas()" class="space-y-3">
+<div id="uganda-location" class="space-y-3"
+  data-default-city="{{ 'Kampala' if not v else (v.location_city or 'Kampala') }}"
+  data-default-area="{{ '' if not v else (v.location_area or '') }}">
   <div>
     <label class="text-xs text-gray-500 font-semibold">District</label>
-    <select name="location_city" x-model="district" @change="updateAreas()" class="w-full border rounded-lg px-3 py-2">
-      <template x-for="d in Object.keys(window.UGANDA_LOCATIONS)" :key="d">
-        <option :value="d" :selected="d === district" x-text="d"></option>
-      </template>
+    <select id="ug-city" name="location_city" class="w-full border rounded-lg px-3 py-2">
+      <option value="">— Select district —</option>
     </select>
   </div>
   <div>
     <label class="text-xs text-gray-500 font-semibold">Area / Division / Ward</label>
-    <select name="location_area" x-model="area" class="w-full border rounded-lg px-3 py-2">
+    <select id="ug-area" name="location_area" class="w-full border rounded-lg px-3 py-2">
       <option value="">— Select area —</option>
-      <template x-for="a in areas" :key="a">
-        <option :value="a" :selected="a === area" x-text="a"></option>
-      </template>
     </select>
   </div>
   <div>
@@ -32,3 +24,54 @@
     <input name="shop_no" value="{{ v.shop_no if v else '' }}" placeholder="e.g. Stall 23" class="w-full border rounded-lg px-3 py-2">
   </div>
 </div>
+<script>
+  (function () {
+    function initUgandaLocation() {
+      var root = document.getElementById('uganda-location');
+      if (!root) return;
+      var citySel = document.getElementById('ug-city');
+      var areaSel = document.getElementById('ug-area');
+      if (!citySel || !areaSel) return;
+
+      var DATA = window.UGANDA_LOCATIONS || {};
+      var cities = Object.keys(DATA);
+      if (cities.length === 0) return;
+
+      var defaultCity = root.getAttribute('data-default-city') || '';
+      var defaultArea = root.getAttribute('data-default-area') || '';
+
+      // Populate districts
+      cities.forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        if (c === defaultCity) o.selected = true;
+        citySel.appendChild(o);
+      });
+
+      function fillAreas() {
+        var city = citySel.value;
+        var list = DATA[city] || ['Other'];
+        areaSel.innerHTML = '<option value="">— Select area —</option>';
+        list.forEach(function (a) {
+          var o = document.createElement('option');
+          o.value = a;
+          o.textContent = a;
+          if (a === defaultArea) o.selected = true;
+          areaSel.appendChild(o);
+        });
+      }
+      fillAreas();
+      citySel.addEventListener('change', function () {
+        defaultArea = '';
+        fillAreas();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initUgandaLocation);
+    } else {
+      initUgandaLocation();
+    }
+  })();
+</script>
