@@ -113,6 +113,16 @@ def seed_demo():
     from seed_jdhub import run_seed_demo
 
     run_seed_demo()
+    # Fix any old image paths in the DB
+    from sqlalchemy import text
+
+    db.session.execute(
+        text("UPDATE products SET image_url = REPLACE(image_url, '/static/uploads/jdhub/', '/static/img-jdhub/') WHERE image_url LIKE '/static/uploads/jdhub/%'")
+    )
+    db.session.execute(
+        text("UPDATE vendors SET logo = REPLACE(logo, '/static/uploads/jdhub/', '/static/img-jdhub/') WHERE logo LIKE '/static/uploads/jdhub/%'")
+    )
+    db.session.commit()
     flash("Demo vendors & products seeded! 🎉", "success")
     return redirect(url_for("admin.dashboard"))
 
