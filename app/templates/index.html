@@ -24,7 +24,26 @@
   {% endfor %}
 </div>
 
+{% if trending %}
+<h2 class="text-lg font-bold text-brand-700 mb-3">🔥 Trending Now</h2>
+<div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 mb-6" style="scroll-snap-type:x mandatory">
+  {% for p in trending %}
+  <a href="/product/{{ p.id }}" class="flex-shrink-0 w-40 bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow" style="scroll-snap-align:start">
+    <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
+      {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full">{% else %}<span class="text-3xl">🛍️</span>{% endif %}
+    </div>
+    <div class="p-2">
+      <div class="font-semibold text-xs line-clamp-1">{{ p.name }}</div>
+      <div class="text-brand-700 font-bold text-xs">UGX {{ p.price|ugx }}</div>
+      <div class="text-[10px] text-gray-400">👁 {{ p.views_count }} views · {{ p.vendor.shop_name }}</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if products %}
+<h2 class="text-lg font-bold text-brand-700 mb-3">🛍️ All Products ({{ product_count }} from {{ vendor_count }} vendors)</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
   {% for p in products %}
   <a href="/product/{{ p.id }}" class="bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow">
@@ -39,6 +58,7 @@
         {{ p.vendor.shop_name }}
         {% if p.vendor.is_verified %}<span class="text-brand-600" title="Verified">✔</span>{% endif %}
         {% if p.avg_rating %}<span class="text-amber-500 ml-auto">★ {{ p.avg_rating }}</span>{% endif %}
+        <span class="text-[9px] text-gray-400 ml-auto">👁 {{ p.views_count }}</span>
       </div>
     </div>
   </a>

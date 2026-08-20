@@ -141,37 +141,78 @@ def dashboard():
     if not v:
         return redirect(url_for("vendor.signup"))
     tab = request.args.get("tab", "products")
+    now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    prev_month_start = (month_start - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    monthly = (
+    # This month's stats
+    monthly = dict(
         db.session.query(Analytics.type, func.count(Analytics.id))
-        .filter(
-            Analytics.vendor_id == v.id,
-            Analytics.created_at
-            >= datetime.utcnow().replace(day=1, hour=0, minute=0, second=0),
-        )
+        .filter(Analytics.vendor_id == v.id, Analytics.created_at >= month_start)
         .group_by(Analytics.type)
         .all()
     )
     stats = {"shop_view": 0, "product_view": 0, "whatsapp_click": 0, "call_click": 0}
-    for t, c in monthly:
+    for t, c in monthly.items():
         stats[t] = c
 
+    # Last month's stats for growth comparison
+    prev_monthly = dict(
+        db.session.query(Analytics.type, func.count(Analytics.id))
+        .filter(Analytics.vendor_id == v.id, Analytics.created_at >= prev_month_start, Analytics.created_at < month_start)
+        .group_by(Analytics.type)
+        .all()
+    )
+    prev_stats = {"shop_view": 0, "product_view": 0, "whatsapp_click": 0, "call_click": 0}
+    for t, c in prev_monthly.items():
+        prev_stats[t] = c
+
+    def growth(cur, prev):
+        if not prev:
+            return 100 if cur else 0
+        return round(((cur - prev) / prev) * 100)
+
+    growth_rates = {k: growth(stats[k], prev_stats[k]) for k in stats}
+
+    # Total stats (all time)
+    total_shop_views = Analytics.query.filter_by(vendor_id=v.id, type="shop_view").count()
+    total_product_views = db.session.query(func.sum(Product.views_count)).filter(Product.vendor_id == v.id).scalar() or 0
+
+    # Top products by views
+    top_products = (
+        Product.query.filter_by(vendor_id=v.id)
+        .order_by(Product.views_count.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Daily chart (14 days)
     daily = (
         db.session.query(func.date(Analytics.created_at), func.count(Analytics.id))
         .filter(
             Analytics.vendor_id == v.id,
-            Analytics.created_at >= datetime.utcnow() - timedelta(days=13),
+            Analytics.created_at >= now - timedelta(days=13),
         )
         .group_by(func.date(Analytics.created_at))
         .order_by(func.date(Analytics.created_at))
         .all()
     )
 
+    # Unread chat count for tab badge
+    from ..models import ChatMessage
+    unread_chats = ChatMessage.query.filter_by(vendor_id=v.id, is_read=False).count()
+
     return render_template(
         "vendor/dashboard.html",
         v=v,
         tab=tab,
         stats=stats,
+        prev_stats=prev_stats,
+        growth_rates=growth_rates,
+        total_shop_views=total_shop_views,
+        total_product_views=total_product_views,
+        top_products=top_products,
+        unread_chats=unread_chats,
         chart_labels=[str(d[0]) for d in daily],
         chart_values=[d[1] for d in daily],
         categories=CATEGORIES,
@@ -179,7 +220,7 @@ def dashboard():
         payments=Payment.query.filter_by(vendor_id=v.id)
         .order_by(Payment.created_at.desc())
         .all(),
-        market_days=MarketDay.query.filter(MarketDay.date >= datetime.utcnow().date())
+        market_days=MarketDay.query.filter(MarketDay.date >= now.date())
         .order_by(MarketDay.date)
         .all(),
         my_bookings={b.market_day_id: b for b in v.market_day_bookings},

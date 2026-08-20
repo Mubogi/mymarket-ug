@@ -84,10 +84,27 @@ def index():
         qry = qry.filter(Product.category == category)
 
     products = boosted_first(qry.limit(200).all())
+
+    # Trending products (most viewed, from active vendors)
+    trending = (
+        Product.query.join(Vendor)
+        .filter(Vendor.is_active.is_(True))
+        .order_by(Product.views_count.desc())
+        .limit(8)
+        .all()
+    )
+
+    # Shop count for hero stat
+    vendor_count = Vendor.query.filter_by(is_active=True).count()
+    product_count = Product.query.join(Vendor).filter(Vendor.is_active.is_(True)).count()
+
     response = make_response(
         render_template(
             "index.html",
             products=products,
+            trending=trending,
+            vendor_count=vendor_count,
+            product_count=product_count,
             categories=CATEGORIES,
             cities=CITIES,
             banner_days=upcoming_market_banner(),

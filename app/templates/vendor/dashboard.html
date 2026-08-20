@@ -38,7 +38,10 @@
   <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
     {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads'),('settings','Settings'),('chat','Chat')] %}
     <button @click="tab='{{ id }}'" :class="tab==='{{ id }}' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
-      class="px-4 py-2 rounded-full font-semibold whitespace-nowrap">{{ label }}</button>
+      class="px-4 py-2 rounded-full font-semibold whitespace-nowrap relative">
+      {{ label }}
+      {% if id == 'chat' and unread_chats > 0 %}<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full grid place-items-center">{{ unread_chats }}</span>{% endif %}
+    </button>
     {% endfor %}
   </div>
 
@@ -94,20 +97,55 @@
 
   <!-- ANALYTICS -->
   <section x-show="tab==='analytics'">
-    <div class="grid grid-cols-3 gap-2 mb-4 text-center">
-      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.shop_view }}</div><div class="text-xs text-gray-500">Shop views</div></div>
-      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.product_view }}</div><div class="text-xs text-gray-500">Product views</div></div>
-      <div class="bg-brand-50 rounded-xl p-3"><div class="text-2xl font-extrabold text-brand-700">{{ stats.whatsapp_click + stats.call_click }}</div><div class="text-xs text-gray-500">WhatsApp/Call clicks</div></div>
+    <!-- Big numbers -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-center">
+      <div class="bg-brand-50 rounded-xl p-3">
+        <div class="text-2xl font-extrabold text-brand-700">{{ stats.shop_view }}</div>
+        <div class="text-xs text-gray-500">Shop views (this month)</div>
+        {% if growth_rates.shop_view > 0 %}<div class="text-[10px] text-green-600 font-bold">↑ +{{ growth_rates.shop_view }}%</div>{% elif growth_rates.shop_view < 0 %}<div class="text-[10px] text-red-500 font-bold">↓ {{ growth_rates.shop_view }}%</div>{% endif %}
+      </div>
+      <div class="bg-brand-50 rounded-xl p-3">
+        <div class="text-2xl font-extrabold text-brand-700">{{ stats.product_view }}</div>
+        <div class="text-xs text-gray-500">Product views</div>
+        {% if growth_rates.product_view > 0 %}<div class="text-[10px] text-green-600 font-bold">↑ +{{ growth_rates.product_view }}%</div>{% elif growth_rates.product_view < 0 %}<div class="text-[10px] text-red-500 font-bold">↓ {{ growth_rates.product_view }}%</div>{% endif %}
+      </div>
+      <div class="bg-brand-50 rounded-xl p-3">
+        <div class="text-2xl font-extrabold text-brand-700">{{ stats.whatsapp_click + stats.call_click }}</div>
+        <div class="text-xs text-gray-500">Contacts</div>
+        {% if growth_rates.whatsapp_click > 0 %}<div class="text-[10px] text-green-600 font-bold">↑ +{{ growth_rates.whatsapp_click }}%</div>{% elif growth_rates.whatsapp_click < 0 %}<div class="text-[10px] text-red-500 font-bold">↓ {{ growth_rates.whatsapp_click }}%</div>{% endif %}
+      </div>
+      <div class="bg-brand-50 rounded-xl p-3">
+        <div class="text-2xl font-extrabold text-brand-700">{{ total_shop_views }}</div>
+        <div class="text-xs text-gray-500">All-time shop views</div>
+      </div>
     </div>
-    <div class="bg-white border rounded-2xl p-4"><canvas id="chart" height="160"></canvas></div>
+
+    <!-- Chart -->
+    <div class="bg-white border rounded-2xl p-4 mb-4">
+      <h3 class="font-bold text-sm mb-2">Views — last 14 days</h3>
+      <canvas id="chart" height="160"></canvas>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       new Chart(document.getElementById('chart'), {
         type: 'line',
-        data: { labels: {{ chart_labels|tojson }}, datasets: [{ label: 'Views (14 days)', data: {{ chart_values|tojson }}, borderColor: '#15803d', backgroundColor: '#dcfce7', fill: true, tension: .3 }] },
+        data: { labels: {{ chart_labels|tojson }}, datasets: [{ label: 'Views', data: {{ chart_values|tojson }}, borderColor: '#15803d', backgroundColor: '#dcfce7', fill: true, tension: .3, pointRadius: 3 }] },
         options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
       });
     </script>
+
+    <!-- Top products by views -->
+    {% if top_products %}
+    <h3 class="font-bold text-sm mb-2">🏆 Top products by views</h3>
+    <div class="space-y-1">
+      {% for p in top_products %}
+      <div class="flex items-center justify-between bg-white border rounded-xl px-3 py-2 text-sm">
+        <span class="font-semibold truncate">{{ p.name }}</span>
+        <span class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">{{ p.views_count }} views</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
 
   <!-- PAYMENTS -->
