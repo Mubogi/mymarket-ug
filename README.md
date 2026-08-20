@@ -4,6 +4,10 @@ A mobile-first multi-vendor SaaS marketplace for Uganda. Vendors get their own s
 (`theirname.mymarket.ug`), customers browse freely without login, and the admin
 approves vendors and tracks payments.
 
+**A product of [Jordan Design Hub](https://jd-hub-8e5d.onrender.com)** — Mubogi Gastavas
+Jordan Tech Ecosystem (Innovation, Education, Apps, Media & AI Solutions, Uganda).
+Contact: jordandesignhub@gmail.com · WhatsApp +256 754 687597
+
 ## Features
 
 - **Customers**: browse/search/filter products by city & category — no login needed
