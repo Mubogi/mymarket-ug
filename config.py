@@ -24,8 +24,13 @@ class Config:
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace(
             "postgres://", "postgresql://", 1
         )
-    UPLOAD_FOLDER = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "app", "static", "uploads"
+    # On Render, set UPLOAD_FOLDER to a mounted disk path (e.g. /var/data/uploads)
+    # so uploaded images survive redeploys/static restarts.
+    UPLOAD_FOLDER = os.environ.get(
+        "UPLOAD_FOLDER",
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "app", "static", "uploads"
+        ),
     )
     MAX_CONTENT_LENGTH = 4 * 1024 * 1024  # 4MB uploads — hard cap against DoS
     CRON_SECRET = os.environ.get("CRON_SECRET") or _secrets.token_hex(16)

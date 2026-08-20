@@ -20,6 +20,12 @@ services:
         sync: false
       - key: BASE_DOMAIN
         value: mymarket.ug
+      - key: UPLOAD_FOLDER
+        value: /var/data/uploads
+    disk:
+      name: mymarket-uploads
+      mountPath: /var/data
+      sizeGB: 1
 
 databases:
   - name: mymarket-db

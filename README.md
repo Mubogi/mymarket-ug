@@ -40,7 +40,6 @@ Contact: jordandesignhub@gmail.com · WhatsApp +256 754 687597
 The app already sends long cache headers for static files and CDN-friendly headers
 (`s-maxage=120`) on the anonymous homepage. To finish the setup:
 
-1. Sign up at cloudflare.com → **Add site** → `mymarket.ug` → Free plan
 2. Change your domain's nameservers at your registrar to the two Cloudflare ones
 3. Add DNS records: `A @ → Render IP` and `CNAME * → your-app.onrender.com` (both **proxied**, orange cloud)
 4. Cloudflare → Caching → **Cache Rule**: cache `/static/*` for 1 month, homepage for 2 minutes
@@ -107,6 +106,11 @@ vendor MoMos you directly and you tap **Mark Paid** in `/admin`.
 4. Open the deployed URL → run the seed once via Render Shell:
    ```bash
    python seed.py
+
+> **Uploaded images without a disk die on redeploy** (Render's filesystem is ephemeral).
+> `render.yaml` already declares a 1GB disk at `/var/data` and sets
+> `UPLOAD_FOLDER=/var/data/uploads` — just keep it, and product photos survive redeploys.
+
    ```
 5. **Cron**: add a Render **Cron Job** (or free cron-job.org) hitting:
    ```
