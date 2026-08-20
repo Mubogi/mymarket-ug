@@ -1,4 +1,8 @@
-"""Seed the Jordan Design Hub vendor with real products from the JD Hub repo.
+"""Seed demo vendors with real products.
+
+- Jordan Design Hub (6 tech products with real JD Hub content)
+- Prosy Styles (fashion items)
+- Updates existing vendors; does not duplicate.
 
 Run: python seed_jdhub.py
 """
@@ -176,6 +180,26 @@ with app.app_context():
         print(f"  + {p_data['name']}")
 
     db.session.commit()
-    print(f"\nDone! Jordan Design Hub now has {Product.query.filter_by(vendor_id=vendor.id).count()} products.")
+
+    # Seed Prosy Styles if exists and empty
+    prosy = Vendor.query.filter_by(slug="prosy-styles").first()
+    if prosy:
+        prosy_products = [
+            ("Kitenge Dress", "Beautiful African print dress, all sizes", 55000, "Clothes", None),
+            ("High Heels", "Stylish heels, size 36-41", 85000, "Shoes", None),
+            ("Clutch Bag", "Evening clutch, gold chain", 40000, "Bags", None),
+            ("Denim Jacket", "Classic blue denim jacket", 70000, "Clothes", None),
+        ]
+        for name, desc, price, cat, img in prosy_products:
+            exists = Product.query.filter_by(vendor_id=prosy.id, name=name).first()
+            if not exists:
+                db.session.add(Product(
+                    vendor_id=prosy.id, name=name, description=desc,
+                    price=price, category=cat, image_url=img
+                ))
+                print(f"  + Prosy: {name}")
+        db.session.commit()
+
+    print(f"\nDone! Jordan Design Hub has {Product.query.filter_by(vendor_id=vendor.id).count()} products.")
     print(f"Vendor login: jordandesignhub@gmail.com / jdhub2026")
     print(f"Shop: /shop/{vendor.slug}")
