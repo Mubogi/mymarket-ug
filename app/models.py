@@ -206,6 +206,22 @@ class AdCampaign(db.Model):
     product = db.relationship("Product", backref="ad_campaigns")
 
 
+
+
+class Spotlight(db.Model):
+    __tablename__ = "spotlights"
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"), nullable=False)
+    kind = db.Column(db.String(10), default="product")  # product|shop
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"))
+    day = db.Column(db.Date, nullable=False, index=True)
+    status = db.Column(db.String(20), default="requested")  # requested|active|expired|rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    vendor = db.relationship("Vendor", backref="spotlights")
+    product = db.relationship("Product", backref="spotlights")
+
+
 class Review(db.Model):
     __tablename__ = "reviews"
     id = db.Column(db.Integer, primary_key=True)

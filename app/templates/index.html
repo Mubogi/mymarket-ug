@@ -24,6 +24,34 @@
   {% endfor %}
 </div>
 
+{% if spotlights %}
+    <section class=\"max-w-7xl mx-auto px-4\">
+      <div class=\"flex items-center justify-between mt-8 mb-4\">
+        <h2 class=\"text-xl font-bold text-gray-900\">&#9733; Spotlight Picks</h2>
+        <span class=\"text-xs text-gray-500\">Fresh 24h features</span>
+      </div>
+      <div class=\"grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3\">
+      {% for sp in spotlights %}
+        <div class=\"spotlight-card border rounded-lg p-2 bg-amber-50\">
+          {% if sp.kind == 'product' and sp.product %}
+            <a href=\"/product/{{ sp.product.id }}\" class=\"block text-center\">
+              {% if sp.product.image_url %}<img src=\"{{ sp.product.image_url }}\" class=\"h-20 w-20 object-cover mx-auto rounded\">{% endif %}
+              <p class=\"text-sm font-semibold\">{{ sp.product.name }}</p>
+              <p class=\"text-xs text-gray-500\">UGX {{ sp.product.price }}</p>
+            </a>
+          {% elif sp.kind == 'shop' and sp.vendor %}
+            <a href=\"/shop/{{ sp.vendor.slug }}\" class=\"block text-center\">
+              {% if sp.vendor.logo %}<img src=\"{{ sp.vendor.logo }}\" class=\"h-20 w-20 object-cover mx-auto rounded\">{% endif %}
+              <p class=\"text-sm font-semibold\">{{ sp.vendor.shop_name }}</p>
+              <p class=\"text-xs text-gray-500\">Shop</p>
+            </a>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </section>
+{% endif %}
+
 {% if trending %}
 <h2 class="text-lg font-bold text-brand-700 mb-3">🔥 Trending Now</h2>
 <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 mb-6" style="scroll-snap-type:x mandatory">

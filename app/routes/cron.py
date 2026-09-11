@@ -1,10 +1,10 @@
 import hmac
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import db
-from ..models import Product, Vendor
+from ..models import Product, Spotlight, Vendor
 
 bp = Blueprint("cron", __name__, url_prefix="/cron")
 
@@ -47,6 +47,17 @@ def daily():
     for p in stale:
         p.is_boosted = False
     results["boosts_expired"] = len(stale)
+
+    db.session.commit()
+
+    # 3.5 Expire spotlights
+    stale_sp = Spotlight.query.filter(
+        Spotlight.status == "active",
+        Spotlight.day < (datetime.utcnow() + timedelta(hours=3)).date(),
+    ).all()
+    for sp in stale_sp:
+        sp.status = "expired"
+    results["spotlights_expired"] = len(stale_sp)
 
     db.session.commit()
 

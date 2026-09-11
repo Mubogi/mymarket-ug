@@ -54,5 +54,13 @@ class Config:
     SETUP_FEE = 10_000
     SUBSCRIPTION_FEE = 5_000
     PRO_UPLOAD_FEE = 5_000
-    BOOST_FEE = 5_000
+    BOOST_FEE =  5_000
+    SPOTLIGHT_PRODUCT_FEE =  5_000  # 1-day top-of-marketplace product spotlight
+    SPOTLIGHT_SHOP_FEE =   10_000  # 1-day top-of-marketplace shop spotlight
+    SPACE_TIERS = {
+        "basic": {"fee": 0, "label": "Stall (Basic)", "desc": "Standard shop presence, up to 10 products live."},
+        "standard": {"fee": 10_000, "label": "Booth (Standard)", "desc": "Priority in search, tier badge, up to 20 products."},
+        "premium": {"fee":  25_000, "label": "Flagship Shop (Premium)", "desc": "Largest presence: flagship spotlight, up to 40 products, premium badge."},
+    }
+
     FREE_PRODUCT_LIMIT = 10

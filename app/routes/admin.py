@@ -10,6 +10,7 @@ from ..models import (
     MarketDayBooking,
     Payment,
     Product,
+    Spotlight,
     Vendor,
 )
 
@@ -40,6 +41,7 @@ def dashboard():
         payments=Payment.query.order_by(Payment.created_at.desc()).limit(100).all(),
         market_days=MarketDay.query.order_by(MarketDay.date).all(),
         campaigns=AdCampaign.query.order_by(AdCampaign.created_at.desc()).all(),
+        spotlights=Spotlight.query.filter_by(status="requested").order_by(Spotlight.created_at.desc()).all(),
         bookings=MarketDayBooking.query.order_by(MarketDayBooking.created_at.desc()).all(),
         expiring=[
             v
@@ -202,6 +204,26 @@ def apply_payment_effect(payment):
         c = AdCampaign.query.filter_by(vendor_id=v.id).order_by(AdCampaign.created_at.desc()).first()
         if c and c.status == "requested":
             c.status = "active"
+    elif payment.type == "spotlight_product":
+        sp = Spotlight.query.filter_by(vendor_id=v.id, kind="product", status="requested").order_by(Spotlight.created_at.desc()).first()
+        if sp:
+            sp.status = "active"
+    elif payment.type == "spotlight_shop":
+        sp = Spotlight.query.filter_by(vendor_id=v.id, kind="shop", status="requested").order_by(Spotlight.created_at.desc()).first()
+        if sp:
+            sp.status = "active"
+
+
+@bp.route("/spotlights/<int:sid>/approve", methods=["POST"])
+def approve_spotlight(sid):
+    sp = Spotlight.query.get_or_404(sid)
+    if sp.status != "requested":
+        flash("That spotlight is no longer pending.", "error")
+    else:
+        sp.status = "active"
+        db.session.commit()
+        flash("Spotlight ad approved and is now live on the homepage.", "success")
+    return redirect(url_for("admin.dashboard"))
 
 
 @bp.route("/market-days/create", methods=["POST"])

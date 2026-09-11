@@ -77,7 +77,22 @@
 <!-- ADS -->
 <h2 class="font-bold mt-6 mb-2">Ad Campaigns</h2>
 <div class="space-y-2">
-  {% for c in campaigns %}
+  {% if spotlights %}
+  <div class="border rounded-lg p-4 my-4">
+    <h3 class="font-bold">&#9733; Spotlights</h3>
+    {% for sp in spotlights %}
+      <div class="flex items-center justify-between py-2">
+        <span>{{ sp.id }} – {% if sp.kind == 'product' and sp.product %}{{ sp.product.name }}{% else %}{{ sp.vendor.shop_name }}{% endif %} ({{ sp.status }})</span>
+        {% if sp.status == 'requested' %}
+        <form method="post" action="/admin/spotlights/{{ sp.id }}/approve">
+          <button class="bg-green-600 text-white rounded px-3 py-1 text-sm">Approve</button>
+        </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% for c in campaigns %}
   <div class="bg-white border rounded-xl p-3 text-sm">
     <div class="flex flex-wrap gap-2 items-center">
       <b>{{ c.vendor.shop_name }}</b><span class="text-gray-500">{{ c.platform }} — {{ c.product.name if c.product else 'Whole shop' }}</span>

@@ -27,6 +27,7 @@ from ..models import (
     Payment,
     Product,
     Review,
+    Spotlight,
     PushSubscription,
     User,
     Vendor,
@@ -248,6 +249,10 @@ def dashboard():
     # Unread chat count for tab badge
     from ..models import ChatMessage
     unread_chats = ChatMessage.query.filter_by(vendor_id=v.id, is_read=False).count()
+    # Spotlights (ads) + space tier
+    spotlights = Spotlight.query.filter_by(vendor_id=v.id).order_by(Spotlight.created_at.desc()).limit(10).all()
+    spotlight_fees = {"product": current_app.config["SPOTLIGHT_PRODUCT_FEE"], "shop": current_app.config["SPOTLIGHT_SHOP_FEE"]}
+
 
     return render_template(
         "vendor/dashboard.html",
@@ -285,6 +290,11 @@ def dashboard():
         .all(),
         credit=v.credit,
         referral_url=f"https://{current_app.config['BASE_DOMAIN']}/refer/{v.slug}",
+        spotlights=Spotlight.query.filter_by(vendor_id=v.id)
+        .order_by(Spotlight.created_at.desc())
+        .limit(10)
+        .all(),
+        products=v.products,
         fees=current_app.config,
     )
 
@@ -416,6 +426,41 @@ def book_market_day(day_id):
         db.session.commit()
         flash(f"Slot requested for {day.market_name} (UGX {day.fee_amount:,}).", "success")
     return redirect(url_for("vendor.dashboard", tab="market"))
+
+
+# ---------- Spotlight ads ----------
+@bp.route("/spotlight/request", methods=["POST"])
+@login_required
+def request_spotlight():
+    v = current_vendor()
+    kind = request.form.get("kind", "product")
+    product_id = request.form.get("product_id") or None
+    if kind not in ("product", "shop"):
+        flash("Invalid spotlight type.", "error")
+        return redirect(url_for("vendor.dashboard", tab="ads"))
+    if kind == "product":
+        product = Product.query.filter_by(id=product_id, vendor_id=v.id).first() if product_id else None
+        if not product:
+            flash("Choose a product to spotlight.", "error")
+            return redirect(url_for("vendor.dashboard", tab="ads"))
+    day = (datetime.utcnow() + timedelta(hours=3)).date()
+    create_payment(
+        v,
+        current_app.config["SPOTLIGHT_PRODUCT_FEE"] if kind == "product" else current_app.config["SPOTLIGHT_SHOP_FEE"],
+        "spotlight_product" if kind == "product" else "spotlight_shop",
+        f"Spotlight ({kind}): {product.name if kind == 'product' else v.shop_name}",
+    )
+    sp = Spotlight(
+        vendor_id=v.id,
+        kind=kind,
+        product_id=product_id if kind == "product" else None,
+        day=day,
+        status="requested",
+    )
+    db.session.add(sp)
+    db.session.commit()
+    flash("Spotlight requested! Pay the fee to go live on the homepage.", "success")
+    return redirect(url_for("vendor.dashboard", tab="ads"))
 
 
 # ---------- Ads ----------

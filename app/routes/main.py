@@ -23,6 +23,7 @@ from ..models import (
     MarketDay,
     Product,
     Review,
+    Spotlight,
     Vendor,
 )
 from ..extensions import limiter
@@ -165,6 +166,12 @@ def index():
             category=category,
             sort_by=sort_by,
             deal=deal,
+            spotlights=(
+                Spotlight.query.filter(Spotlight.status == "active")
+                .order_by(Spotlight.created_at.desc())
+                .limit(12)
+                .all()
+            ),
         )
     )
     # Let Cloudflare/other CDNs cache the homepage for anonymous visitors
