@@ -23,11 +23,13 @@
             ${p.image_url ? `<img src="${p.image_url}" class="object-cover w-full h-full" alt="${p.name}}">` : '<span class="text-4xl">🛍️</span>'}
           </div>
         </a>
-        <div class="p-2">
-          <div class="font-semibold text-sm line-clamp-1">${p.name}</div>
-          <div class="text-brand-700 font-bold text-sm">UGX ${p.price_formatted}</div>
+                <div class="flex items-center gap-1">
+          <span class="font-semibold text-sm line-clamp-1">${p.name}</span>
+          ${p.verified ? '<span class="text-xs bg-brand-600 text-white rounded-full px-1.5 font-bold" title="Verified shop">✔</span>' : ''}
         </div>
-      </div>`).join('');
+        ${p.discount ? `<div class="text-brand-700 font-bold text-sm">UGX ${p.discounted_price} <span class="text-[10px] line-through text-gray-400">UGX ${p.price_formatted}</span> <span class="text-[10px] bg-red-500 text-white rounded px-1">${p.discount}%</span></div>` : `<div class="text-brand-700 font-bold text-sm">UGX ${p.price_formatted}</div>`}
+        <a href="${p.shop_url}" class="text-[11px] text-gray-500 block truncate">${p.shop_name}</a>
+        <div class="text-[10px] ${p.stock === 0 ? 'text-red-600' : 'text-gray-400'}">${p.stock === 0 ? 'Out of stock' : (p.stock ? p.stock + ' in stock' : '')}</div>  </div>`).join('');
   }
   renderFavs();
 </script>

@@ -259,6 +259,12 @@ def favorites_api():
             "name": p.name,
             "image_url": p.image_url,
             "price_formatted": f"{p.price:,}",
+            "discounted_price": f"{p.discounted_price:,}",
+            "discount": p.discount or 0,
+            "stock": p.stock,
+            "shop_url": f"/shop/{p.vendor.slug}",
+            "shop_name": p.vendor.shop_name,
+            "verified": bool(p.vendor and p.vendor.is_verified),
         }
         for p in by_id.values()
     ]
@@ -281,6 +287,8 @@ def go_order(product_id):
     text = f"Hi {p.vendor.shop_name}, I'd like to order: {p.name} (UGX {p.price:,})\nQty: {qty}"
     if notes:
         text += f"\nNotes: {notes}"
+    if p.vendor and p.vendor.is_verified:
+        text += "\n(Verified shop on MyMarket.ug)"
     text += f"\nFrom MyMarket.ug product: https://{current_app.config['BASE_DOMAIN']}/product/{p.id}"
     return redirect(f"https://wa.me/{phone}?text={text.replace(' ', '%20').replace('\n', '%0A')}")
 

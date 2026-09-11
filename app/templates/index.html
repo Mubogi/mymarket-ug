@@ -33,7 +33,10 @@
       {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full">{% else %}<span class="text-3xl">🛍️</span>{% endif %}
     </div>
     <div class="p-2">
-      <div class="font-semibold text-xs line-clamp-1">{{ p.name }}</div>
+      <div class="flex items-center gap-1">
+        <span class="font-semibold text-xs line-clamp-1">{{ p.name }}</span>
+        {% if p.vendor.is_verified %}<span class="text-xs bg-brand-600 text-white rounded-full px-1.5 font-bold" title="Verified shop">✔</span>{% endif %}
+      </div>
       <div class="text-brand-700 font-bold text-xs">UGX {{ p.price|ugx }}</div>
       <div class="text-[10px] text-gray-400">👁 {{ p.views_count }} views · {{ p.vendor.shop_name }}</div>
     </div>
