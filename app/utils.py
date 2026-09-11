@@ -19,10 +19,12 @@ def slugify(value):
 def unique_slug(name):
     base = slugify(name)
     slug, i = base, 2
-    while Vendor.query.filter_by(slug=slug).first():
+    for _ in range(100):  # hard cap: never loop forever
+        if not Vendor.query.filter_by(slug=slug).first():
+            return slug
         slug = f"{base}-{i}"
         i += 1
-    return slug
+    return f"{base}-{int(time.time())}"
 
 
 def save_upload(file_storage, max_px=1000, quality=82):
@@ -94,3 +96,9 @@ def allowed_uploads(vendor):
 
 def ugx(amount):
     return f"{int(amount or 0):,}"
+
+def final_price(price, discount):
+    """Discounted price (UGX) or full price."""
+    if discount:
+        return round(int(price or 0) * (100 - int(discount)) / 100)
+    return int(price or 0)

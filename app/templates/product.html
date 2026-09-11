@@ -8,17 +8,44 @@
   <div class="mt-4">
     {% if product.boosted_now %}<span class="text-xs bg-amber-400 font-bold px-2 py-0.5 rounded">BOOSTED #1 in {{ product.category }}</span>{% endif %}
     <h1 class="text-2xl font-extrabold mt-1">{{ product.name }}</h1>
+    {% if product.discount %}
+    <div class="flex items-baseline gap-2">
+      <div class="text-brand-700 font-bold text-2xl">UGX {{ product.discounted_price|ugx }}</div>
+      <div class="text-gray-400 line-through">UGX {{ product.price|ugx }}</div>
+      <span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ product.discount }}% OFF</span>
+    </div>
+    {% else %}
     <div class="text-brand-700 font-bold text-2xl">UGX {{ product.price|ugx }}</div>
+    {% endif %}
+    {% if product.stock ==  0 %}<span class="inline-block bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded mt-1">Out of stock</span>{% elif product.stock is not none %}<span class="inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded mt-1">{{ product.stock }} in stock</span>{% endif %}
     <p class="text-gray-600 mt-2">{{ product.description }}</p>
     <a href="/shop/{{ product.vendor.slug }}" class="inline-flex items-center gap-1 text-sm text-brand-700 font-semibold mt-3">
       🏪 {{ product.vendor.shop_name }}
       {% if product.vendor.is_verified %}<span class="text-xs bg-brand-600 text-white px-1.5 rounded-full">✔</span>{% endif %}
       <span class="text-gray-400 font-normal">· {{ product.vendor.location_city }}</span>
     </a>
+    {% if product.vendor.phone or product.vendor.whatsapp or product.vendor.opening_hours %}
+    <div class="text-xs text-gray-500 mt-2 space-y-0.5">
+      {% if product.vendor.opening_hours %}<div>🕒 {{ product.vendor.opening_hours }}</div>{% endif %}
+      {% if product.vendor.phone %}<div>📞 {{ product.vendor.phone }}</div>{% endif %}
+      {% if product.vendor.whatsapp %}<div>💬 WhatsApp: {{ product.vendor.whatsapp }}</div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="flex gap-2 mt-2">
+      <button onclick="toggleFav({{ product.id }}, '{{ product.name|e }}')" id="favBtn" class="text-sm border border-gray-300 px-3 py-1.5 rounded-full">🤍 Save</button>
+      <button onclick="shareProduct()" class="text-sm border border-gray-300 px-3 py-1.5 rounded-full">🔗 Share</button>
+    </div>
     <p class="text-xs text-gray-400 mt-1">{{ product.views_count }} views</p>
   </div>
   <div class="sticky bottom-3 flex gap-2 mt-6">
-    <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">💬 WhatsApp</a>
+    {% if product.stock ==  0 %}
+    <span class="flex-1 text-center bg-gray-300 text-gray-600 font-bold rounded-xl py-3 shadow cursor-not-allowed">Out of stock</span>
+    {% elif product.stock is not none and product.stock < 3 %}
+    <button onclick="openBuyModal()" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now (low stock)</button>
+    {% else %}
+    <button onclick="openBuyModal()" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now</button>
+    {% endif %}
+    <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">💬 WhatsApp</a>
     <a href="/go/call/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">📞 Call</a>
     <a href="/chat/{{ product.vendor.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">💭 Chat</a>
   </div>
@@ -38,6 +65,9 @@
         <span class="font-semibold">{{ r.reviewer_name }}</span>
         <span class="text-amber-500">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</span>
         <p class="text-gray-600">{{ r.comment }}</p>
+        {% if r.reply %}
+        <div class="bg-green-50 border-l-4 border-green-500 p-2 mt-2 text-xs rounded mt-2"><b class="text-green-700">{{ product.vendor.shop_name }} replied:</b> {{ r.reply }}</div>
+        {% endif %}
       </div>
       {% else %}<p class="text-sm text-gray-500">No reviews yet. Be the first!</p>{% endfor %}
     </div>
@@ -54,4 +84,71 @@
     </form>
   </div>
 </div>
+<div id="buyModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-bold text-lg">🛒 Complete your order</h2>
+      <button onclick="closeBuyModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form method="post" action="/orders/buy/{{ product.id }}" class="space-y-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="flex gap-2">
+        <input name="name" required placeholder="Full name" class="flex-1 border rounded-lg px-3 py-2 text-sm">
+        <input name="phone" required placeholder="Phone" class="flex-1 border rounded-lg px-3 py-2 text-sm">
+      </div>
+      <input name="email" type="email" placeholder="Email (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+      <input name="address" placeholder="Delivery address (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-500">Qty</label>
+        <input name="qty" type="number" min=1 value=1 class="w-20 border rounded-lg px-2 py-1 text-sm">
+        <span class="text-xs text-gray-400 ml-auto">💳 Pay by Mobile Money / Card — secure Flutterwave checkout</span>
+      </div>
+      <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-3">Pay Now</button>
+    </form>
+    <p class="text-xs text-gray-400 mt-2">Prefer WhatsApp? <a href="/go/order/{{ product.id }}" class="text-brand-600 underline">Order via WhatsApp instead</a></p>
+  </div>
+</div>
+
+<script>
+  function getFavs() {
+    try { return JSON.parse(localStorage.getItem('mymarket_favs') || '[]'); } catch (e) { return []; }
+  }
+  function saveFavs(list) { localStorage.setItem('mymarket_favs', JSON.stringify(list)); }
+  function toggleFav(id, name) {
+    let list = getFavs();
+    const exists = list.find(f => f.id == id);
+    if (exists) {
+      list = list.filter(f => f.id != id);
+    } else {
+      list.push({ id: id, name: name, at: Date.now() });
+    }
+    saveFavs(list);
+    const btn = document.getElementById('favBtn');
+    if (btn) btn.textContent = exists ? '🤍 Save' : '❤️ Saved';
+  }
+  function initFavBtn() {
+    const btn = document.getElementById('favBtn');
+    if (!btn) return;
+    const saved = getFavs().some(f => f.id == {{ product.id }});
+    if (saved) btn.textContent = '❤️ Saved';
+  }
+  function shareProduct() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: document.title, url: url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copied!');
+    }
+  }
+  function openBuyModal() {
+    const m = document.getElementById('buyModal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+}
+function closeBuyModal() {
+    const m = document.getElementById('buyModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+}
+  initFavBtn();
+</script>
 {% endblock %}

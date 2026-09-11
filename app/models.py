@@ -45,9 +45,17 @@ class Vendor(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     subscription_expires_at = db.Column(db.DateTime)
     products_uploaded_this_month = db.Column(db.Integer, default=0)
+    phone = db.Column(db.String(30))  # public contact phone (WhatsApp)
+    whatsapp = db.Column(db.String(30))  # separate WhatsApp number if different
+    email = db.Column(db.String(120))  # public contact email
+    opening_hours = db.Column(db.String(160))  # e.g. "Mon–Sat 9am–6pm"
+    referred_by = db.Column(db.Integer, db.ForeignKey("vendors.id"))
+    credit = db.Column(db.Integer, default=0, nullable=False)  # UGX referral/other credit
+    flw_subaccount_id = db.Column(db.String(80))  # Flutterwave subaccount for merchant splits
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", back_populates="vendor")
+    referrer = db.relationship("Vendor", remote_side=[id], foreign_keys=[referred_by], backref="referrals")
     products = db.relationship(
         "Product", back_populates="vendor", cascade="all, delete-orphan"
     )
@@ -70,11 +78,24 @@ class Product(db.Model):
     image_url = db.Column(db.String(255))
     category = db.Column(db.String(60), default="Electronics")
     views_count = db.Column(db.Integer, default=0)
+    stock = db.Column(db.Integer, default=None)  # None = unlimited; 0 = out of stock
+    discount = db.Column(db.Integer, default=0)  # percent 0-90
+    is_hidden = db.Column(db.Boolean, default=False)  # admin moderation hide
     is_boosted = db.Column(db.Boolean, default=False)
     boost_expires_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     vendor = db.relationship("Vendor", back_populates="products")
+
+    @property
+    def out_of_stock(self):
+        return self.stock == 0
+
+    @property
+    def discounted_price(self):
+        if not self.discount:
+            return self.price
+        return round(self.price * (100 - self.discount)) / 100
 
     @property
     def boosted_now(self):
@@ -105,6 +126,7 @@ class Payment(db.Model):
     note = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
+    merchant_notify = db.Column(db.Boolean, default=False)  # merchant confirmed via SMS/push
 
     vendor = db.relationship("Vendor", backref="payments")
 
@@ -133,6 +155,29 @@ class MarketDayBooking(db.Model):
 
     market_day = db.relationship("MarketDay", back_populates="bookings")
     vendor = db.relationship("Vendor", backref="market_day_bookings")
+
+
+class Order(db.Model):
+    """A customer purchase paid via Flutterwave merchant checkout (split to vendor)."""
+    __tablename__ = "orders"
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"), nullable=False)
+    qty = db.Column(db.Integer, default=1, nullable=False)
+    amount = db.Column(db.Integer, nullable=False)  # total paid(incl. delivery fee)
+    delivery_fee = db.Column(db.Integer, default=0)
+    customer_name = db.Column(db.String(120))
+    customer_phone = db.Column(db.String(30))
+    customer_email = db.Column(db.String(120))
+    customer_address = db.Column(db.String(255))
+    status = db.Column(db.String(20), default="pending")  # pending|paid|cancelled
+    tx_ref = db.Column(db.String(120), unique=True)
+    merchant_notify = db.Column(db.Boolean, default=False)  # vendor notified of new sale
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
+
+    product = db.relationship("Product", backref="orders")
+    vendor = db.relationship("Vendor", backref="orders")
 
 
 class Analytics(db.Model):
@@ -169,6 +214,8 @@ class Review(db.Model):
     reviewer_name = db.Column(db.String(120), default="Customer")
     rating = db.Column(db.Integer, nullable=False)  # 1-5
     comment = db.Column(db.Text)
+    reply = db.Column(db.Text)  # vendor reply
+    replied_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     product = db.relationship("Product", backref="reviews")

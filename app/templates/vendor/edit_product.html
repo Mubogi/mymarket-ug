@@ -10,6 +10,8 @@
     </div>
     <input name="name" required value="{{ p.name }}" class="w-full border rounded-lg px-3 py-2">
     <input name="price" required type="number" min="0" value="{{ p.price }}" class="w-full border rounded-lg px-3 py-2">
+    <input name="stock" type="number" min="0" value="{{ p.stock if p.stock is not none else '' }}" placeholder="Stock (blank = unlimited)" class="w-full border rounded-lg px-3 py-2">
+    <input name="discount" type="number" min="0" max="90" value="{{ p.discount or 0 }}" placeholder="Discount % (0-90)" class="w-full border rounded-lg px-3 py-2">
     <select name="category" class="w-full border rounded-lg px-3 py-2">
       {% for c in categories %}<option {{ 'selected' if c == p.category }}>{{ c }}</option>{% endfor %}
     </select>

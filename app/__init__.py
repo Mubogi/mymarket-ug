@@ -96,17 +96,44 @@ def create_app(config_object=Config):
 
 
 def _auto_migrate(app):
-    """Add newly introduced columns to existing SQLite databases."""
+    """Add newly introduced columns to existing databases (SQLite + Postgres)."""
     from sqlalchemy import inspect, text
 
+    dialect = db.engine.dialect.name
     with db.engine.connect() as conn:
-        for table, column, ddl in [
-            ("payments", "tx_ref", "VARCHAR(120)"),
-            ("vendors", "location_area", "VARCHAR(120)"),
-            ("vendors", "shop_no", "VARCHAR(40)"),
+        for table, column, ddl, pddl in [
+            ("payments", "tx_ref", "VARCHAR(120)", "VARCHAR(120)"),
+            ("vendors", "location_area", "VARCHAR(120)", "VARCHAR(120)"),
+            ("vendors", "shop_no", "VARCHAR(40)", "VARCHAR(40)"),
+            ("vendors", "phone", "VARCHAR(30)", "VARCHAR(30)"),
+            ("vendors", "whatsapp", "VARCHAR(30)", "VARCHAR(30)"),
+            ("vendors", "email", "VARCHAR(120)", "VARCHAR(120)"),
+            ("vendors", "opening_hours", "VARCHAR(160)", "VARCHAR(160)"),
+            ("vendors", "referred_by", "INTEGER", "INTEGER"),
+            ("vendors", "credit", "INTEGER DEFAULT 0", "INTEGER DEFAULT 0"),
+            ("products", "stock", "INTEGER", "INTEGER"),
+            ("products", "discount", "INTEGER DEFAULT 0", "INTEGER DEFAULT 0"),
+            ("products", "is_hidden", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT false"),
+            ("reviews", "reply", "TEXT", "TEXT"),
+            ("reviews", "replied_at", "DATETIME", "TIMESTAMP"),
+            ("payments", "merchant_notify", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT false"),
+            ("vendors", "flw_subaccount_id", "VARCHAR(80)", "VARCHAR(80)"),
+            ("orders", "qty", "INTEGER DEFAULT 1", "INTEGER DEFAULT 1"),
+            ("orders", "delivery_fee", "INTEGER DEFAULT 0", "INTEGER DEFAULT 0"),
+            ("orders", "customer_name", "VARCHAR(120)", "VARCHAR(120)"),
+            ("orders", "customer_phone", "VARCHAR(30)", "VARCHAR(30)"),
+            ("orders", "customer_email", "VARCHAR(120)", "VARCHAR(120)"),
+            ("orders", "customer_address", "VARCHAR(255)", "VARCHAR(255)"),
+            ("orders", "status", "VARCHAR(20) DEFAULT 'pending'", "VARCHAR(20) DEFAULT 'pending'"),
+            ("orders", "tx_ref", "VARCHAR(120)", "VARCHAR(120)"),
+            ("orders", "merchant_notify", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT false"),
+            ("orders", "created_at", "DATETIME", "TIMESTAMP"),
+            ("orders", "paid_at", "DATETIME", "TIMESTAMP"),
         ]:
-            if column not in [c["name"] for c in inspect(db.engine).get_columns(table)]:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+            cols = [c["name"] for c in inspect(db.engine).get_columns(table)]
+            if column not in cols:
+                sql = f"ALTER TABLE {table} ADD COLUMN {column} {(pddl if dialect == 'postgresql' else ddl)}"
+                conn.execute(text(sql))
                 conn.commit()
 
 

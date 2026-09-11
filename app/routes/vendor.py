@@ -23,8 +23,10 @@ from ..models import (
     CITIES,
     MarketDay,
     MarketDayBooking,
+    Order,
     Payment,
     Product,
+    Review,
     PushSubscription,
     User,
     Vendor,
@@ -49,7 +51,42 @@ def current_vendor():
     return current_user.vendor
 
 
+def _parse_stock(value):
+    """Parse stock from a form field: blank/None = unlimited; int otherwise."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return max(int(float(value)), 0)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_discount(value):
+    try:
+        return max(0, min(90, int(float(value or 0))))
+    except (TypeError, ValueError):
+        return 0
+
+
 def create_payment(vendor, amount, type_, note=None):
+    """Create a payment, automatically applying any available referral credit."""
+    if vendor.credit and vendor.credit > 0:
+        applied = min(vendor.credit, amount)
+        vendor.credit -= applied
+        amount -= applied
+        note = (note or "") + f" (credit applied: UGX {applied:,})"
+    if amount <= 0:
+        p = Payment(
+            vendor_id=vendor.id, amount=0, type=type_, status="paid",
+            paid_at=datetime.utcnow(), note=note or "Covered by credit",
+        )
+        db.session.add(p)
+        db.session.commit()
+        from .admin import apply_payment_effect
+        apply_payment_effect(p)
+        db.session.commit()
+        return p
     p = Payment(vendor_id=vendor.id, amount=amount, type=type_, note=note)
     db.session.add(p)
     db.session.commit()
@@ -86,7 +123,17 @@ def signup():
             location_area=f.get("location_area", ""),
             location_detail=f.get("location_detail", ""),
             shop_no=f.get("shop_no", ""),
+            phone=f.get("contact_phone", ""),
+            whatsapp=f.get("contact_whatsapp", ""),
+            email=f.get("contact_email", ""),
+            opening_hours=f.get("opening_hours", ""),
         )
+        # Referral: credit the referrer when this vendor signs up
+        ref_slug = request.args.get("ref", "").strip()
+        if ref_slug:
+            referrer = Vendor.query.filter_by(slug=ref_slug).first()
+            if referrer and referrer.id != vendor.id:
+                vendor.referred_by = referrer.id
         logo = save_upload(request.files.get("logo"))
         if logo:
             vendor.logo = logo
@@ -227,6 +274,17 @@ def dashboard():
         campaigns=AdCampaign.query.filter_by(vendor_id=v.id)
         .order_by(AdCampaign.created_at.desc())
         .all(),
+        reviews=Review.query.filter_by(vendor_id=v.id)
+        .order_by(Review.created_at.desc())
+        .limit(50)
+        .all(),
+        new_orders=Order.query.filter_by(vendor_id=v.id, merchant_notify=True).count(),
+        orders=Order.query.filter_by(vendor_id=v.id)
+        .order_by(Order.created_at.desc())
+        .limit(100)
+        .all(),
+        credit=v.credit,
+        referral_url=f"https://{current_app.config['BASE_DOMAIN']}/refer/{v.slug}",
         fees=current_app.config,
     )
 
@@ -252,6 +310,8 @@ def add_product():
         price=int(float(request.form["price"] or 0)),
         category=request.form.get("category", "Electronics"),
         image_url=image or request.form.get("image_url"),
+        stock=_parse_stock(request.form.get("stock", "")),
+        discount=_parse_discount(request.form.get("discount", 0)),
     )
     v.products_uploaded_this_month = (v.products_uploaded_this_month or 0) + 1
     db.session.add(p)
@@ -272,6 +332,8 @@ def edit_product(pid):
         p.description = request.form.get("description", "")
         p.price = int(float(request.form["price"] or 0))
         p.category = request.form.get("category", p.category)
+        p.stock = _parse_stock(request.form.get("stock", ""))
+        p.discount = _parse_discount(request.form.get("discount", 0))
         image = save_upload(request.files.get("image"))
         if image:
             p.image_url = image
@@ -306,6 +368,20 @@ def boost_product(pid):
     create_payment(v, current_app.config["BOOST_FEE"], "boost", f"Boost: {p.name}")
     flash("Boost payment created (UGX 5,000). Your product goes to #1 once paid.", "success")
     return redirect(url_for("vendor.dashboard", tab="payments"))
+
+
+@bp.route("/reviews/<int:rid>/reply", methods=["POST"])
+@login_required
+def reply_review(rid):
+    v = current_vendor()
+    r = Review.query.get_or_404(rid)
+    if r.vendor_id != v.id:
+        abort(403)
+    r.reply = (request.form.get("reply", "").strip())[:1000]
+    r.replied_at = datetime.utcnow()
+    db.session.commit()
+    flash("Reply posted.", "success")
+    return redirect(url_for("vendor.dashboard", tab="reviews"))
 
 
 # ---------- Payments (simulated checkout) ----------
@@ -376,6 +452,10 @@ def settings():
     v.location_area = request.form.get("location_area", v.location_area)
     v.location_detail = request.form.get("location_detail", v.location_detail)
     v.shop_no = request.form.get("shop_no", v.shop_no)
+    v.phone = request.form.get("contact_phone", v.phone or "")
+    v.whatsapp = request.form.get("contact_whatsapp", v.whatsapp or "")
+    v.email = request.form.get("contact_email", v.email or "")
+    v.opening_hours = request.form.get("opening_hours", v.opening_hours or "")
     logo = save_upload(request.files.get("logo"))
     if logo:
         v.logo = logo

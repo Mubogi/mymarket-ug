@@ -36,10 +36,11 @@
 
   <!-- Tabs -->
   <div class="flex gap-2 overflow-x-auto pb-1 mb-4 text-sm">
-    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('market','Market Days'),('ads','Ads'),('settings','Settings'),('chat','Chat')] %}
+    {% for id, label in [('products','Products'),('analytics','Analytics'),('payments','Payments'),('orders','Orders'),('market','Market Days'),('ads','Ads'),('reviews','Reviews'),('settings','Settings'),('chat','Chat')] %}
     <button @click="tab='{{ id }}'" :class="tab==='{{ id }}' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
       class="px-4 py-2 rounded-full font-semibold whitespace-nowrap relative">
       {{ label }}
+      {% if id == 'orders' and new_orders > 0 %}<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full grid place-items-center">{{ new_orders }}</span>{% endif %}
       {% if id == 'chat' and unread_chats > 0 %}<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full grid place-items-center">{{ unread_chats }}</span>{% endif %}
     </button>
     {% endfor %}
@@ -58,6 +59,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input name="name" required placeholder="Product name" class="border rounded-lg px-3 py-2">
         <input name="price" required type="number" min="0" placeholder="Price (UGX)" class="border rounded-lg px-3 py-2">
+        <input name="stock" type="number" min="0" placeholder="Stock (blank = unlimited)" class="border rounded-lg px-3 py-2">
+        <input name="discount" type="number" min="0" max="90" placeholder="Discount % (0-90)" class="border rounded-lg px-3 py-2">
         <select name="category" class="border rounded-lg px-3 py-2">
           {% for c in categories %}<option>{{ c }}</option>{% endfor %}
         </select>
@@ -78,8 +81,12 @@
         <div class="p-2 text-sm">
           {% if p.boosted_now %}<span class="text-[10px] bg-amber-400 font-bold px-1.5 rounded">BOOSTED until {{ p.boost_expires_at.strftime('%d %b %H:%M') }}</span>{% endif %}
           <div class="font-semibold line-clamp-1">{{ p.name }}</div>
+          {% if p.discount %}
+          <div class="text-brand-700 font-bold">UGX {{ p.discounted_price|ugx }} <span class="text-xs line-through text-gray-400">UGX {{ p.price|ugx }}</span> <span class="text-[10px] bg-red-500 text-white rounded px-1">{{ p.discount }}% OFF</span></div>
+          {% else %}
           <div class="text-brand-700 font-bold">UGX {{ p.price|ugx }}</div>
-          <div class="text-xs text-gray-400">{{ p.views_count }} views</div>
+          {% endif %}
+          <div class="text-xs text-gray-400">{{ p.views_count }} views{% if p.stock is not none and p.stock > 0 %} · {{ p.stock }} in stock{% elif p.stock == 0 %} · <span class="text-red-600">out of stock</span>{% endif %}</div>
           <div class="flex gap-1 mt-1">
             <a href="/vendor/products/{{ p.id }}/edit" class="text-xs border border-brand-600 text-brand-700 font-bold px-2 py-1 rounded">Edit</a>
             {% if not p.boosted_now %}
@@ -148,6 +155,23 @@
     {% endif %}
   </section>
 
+  <!-- REFERRAL & CREDIT -->
+  <div class="grid sm:grid-cols-2 gap-3 mb-4">
+    <div class="bg-white border rounded-2xl p-4">
+      <h3 class="font-bold">🎁 Refer friends, earn credit</h3>
+      <p class="text-sm text-gray-500">When a vendor signs up with your link, you get UGX 10,000 credit toward any fees.</p>
+      <div class="flex gap-2 mt-2">
+        <input id="refLink" readonly value="{{ referral_url }}" class="flex-1 border rounded-lg px-3 py-2 text-sm bg-gray-50" onclick="this.select()">
+        <button onclick="navigator.clipboard.writeText(document.getElementById('refLink').value)" class="bg-brand-600 text-white text-sm font-bold px-4 py-2 rounded-lg">Copy</button>
+      </div>
+    </div>
+    <div class="bg-white border rounded-2xl p-4">
+      <h3 class="font-bold">💰 Credit balance</h3>
+      <p class="text-3xl font-extrabold text-brand-700">UGX {{ (credit or 0)|ugx }}</p>
+      <p class="text-xs text-gray-500">Automatically applied to your next payment.</p>
+    </div>
+  </div>
+
   <!-- PAYMENTS -->
   <section x-show="tab==='payments'">
     <div class="grid sm:grid-cols-2 gap-3 mb-4">
@@ -180,6 +204,27 @@
         {% endif %}
       </div>
       {% else %}<p class="text-sm text-gray-500">No payments yet.</p>{% endfor %}
+    </div>
+  </section>
+
+  <!-- ORDERS -->
+  <section x-show="tab==='orders'">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-bold text-lg">🛒 Orders</h2>
+      <p class="text-xs text-gray-500">Paid customer orders — confirmed via Flutterwave</p>
+    </div>
+    <div class="space-y-2">
+      {% for o in orders %}
+      <div class="bg-white border rounded-xl px-3 py-2 text-sm flex flex-wrap items-center gap-2">
+        <span class="font-bold">{{ o.qty }}x {{ o.product.name }}</span>
+        <span class="text-gray-500">{{ o.customer_name or 'Guest' }} · {{ o.customer_phone or 'no phone' }}</span>
+        <span class="font-bold text-brand-700 ml-auto">UGX {{ o.amount|ugx }}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-700' if o.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ o.status }}</span>
+        <span class="text-xs text-gray-400">{{ o.created_at.strftime('%d %b %H:%M') }}</span>
+        {% if o.customer_address %}<span class="w-full text-xs text-gray-500">📍 {{ o.customer_address }}</span>{% endif %}
+        <span class="w-full text-xs text-gray-400">Deliver to: {{ o.customer_name or '—' }} · Call {{ o.customer_phone or '—' }}{% if o.customer_email %} · {{ o.customer_email }}{% endif %}</span>
+      </div>
+      {% else %}<p class="text-sm text-gray-500">No orders yet. When a customer pays via Buy Now, orders appear here.</p>{% endfor %}
     </div>
   </section>
 
@@ -246,6 +291,32 @@
   </section>
 
   <!-- SETTINGS -->
+  <section x-show="tab==='reviews'" class="space-y-3">
+    <div class="bg-white border rounded-2xl p-4 mb-4">
+      <h3 class="font-bold mb-2">Customer Reviews</h3>
+      {% if reviews %}
+        {% for r in reviews %}
+        <div class="border-b pb-3 mb-3 last:border-0">
+          <div class="flex justify-between text-sm"><span class="font-semibold">{{ r.author_name or 'Customer' }}</span><span class="text-gray-400">{{ r.created_at.strftime('%d %b %Y') }}</span></div>
+          <div class="text-sm">{% for i in range(r.rating) %}⭐{% endfor %}</div>
+          <p class="text-sm mt-1">{{ r.comment }}</p>
+          {% if r.reply %}
+          <div class="bg-green-50 border-l-4 border-green-500 p-2 mt-2 text-sm rounded"><b>You replied:</b> {{ r.reply }}</div>
+          {% else %}
+          <form method="post" action="/vendor/reviews/{{ r.id }}/reply" class="mt-2 flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input name="reply" placeholder="Reply to this review…" class="flex-1 border rounded-lg px-3 py-2 text-sm" required>
+            <button class="bg-brand-600 text-white text-sm font-bold px-4 py-2 rounded-lg">Reply</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-gray-500 text-sm">No reviews yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
   <section x-show="tab==='settings'">
     <form method="post" action="/vendor/settings" enctype="multipart/form-data" class="bg-white border rounded-2xl p-4 space-y-3 max-w-md">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -260,6 +331,10 @@
       </div>
       <textarea name="description" rows="2" placeholder="Describe your shop" class="w-full border rounded-lg px-3 py-2">{{ v.description }}</textarea>
       {% include "_location_fields.html" %}
+      <input name="contact_phone" placeholder="Public phone (e.g. +256 7XX XXX XXX)" class="w-full border rounded-lg px-3 py-2" value="{{ v.phone or '' }}">
+      <input name="contact_whatsapp" placeholder="WhatsApp number" class="w-full border rounded-lg px-3 py-2" value="{{ v.whatsapp or '' }}">
+      <input name="contact_email" placeholder="Public contact email" class="w-full border rounded-lg px-3 py-2" value="{{ v.email or '' }}">
+      <input name="opening_hours" placeholder="Opening hours (e.g. Mon-Sat 9am-6pm)" class="w-full border rounded-lg px-3 py-2" value="{{ v.opening_hours or '' }}">
       <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-2.5">Save Settings</button>
     </form>
   </section>

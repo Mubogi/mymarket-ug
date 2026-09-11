@@ -16,7 +16,7 @@ from flask_login import current_user, login_required
 
 from .. import payments as flw
 from ..extensions import db, limiter
-from ..models import Payment
+from ..models import Order, Payment, Product
 
 bp = Blueprint("payments", __name__)
 
@@ -34,6 +34,114 @@ def settle_payment(payment):
         payment.vendor.user.phone,
         f"MyMarket.ug: payment of UGX {payment.amount:,} ({payment.type.replace('_', ' ')}) confirmed. Thank you!",
     )
+
+
+def settle_order(order):
+    """Mark an order paid, decrement stock, and notify the vendor."""
+    from ..sms import send_sms
+    from ..push import notify_user
+
+    order.status = "paid"
+    order.paid_at = datetime.utcnow()
+    p = order.product
+    if p is not None and p.stock is not None:
+        p.stock = max(0, p.stock - order.qty)
+    order.merchant_notify = True
+    db.session.commit()
+    phone = order.vendor.user.phone
+    if phone:
+        send_sms(
+            phone,
+            f"MyMarket.ug: New order! {order.customer_name or 'Customer'} bought "
+            f"{order.qty}x {p.name if p else 'item'} UGX {order.amount:,}. "
+            f"Call {order.customer_phone or 'no number'} to arrange delivery.",
+        )
+    notify_user(order.vendor.user_id, "New order", f"{order.qty}x {p.name if p else 'item'} paid — UGX {order.amount:,}", "/vendor#orders")
+
+
+@bp.route("/orders/buy/<int:product_id>", methods=["POST"])
+@limiter.limit("10 per hour")
+def buy_product(product_id):
+    """Start a Flutterwave checkout for a customer product order."""
+    p = Product.query.get_or_404(product_id)
+    if p.is_hidden or not p.vendor.is_active:
+        abort(404)
+    if p.stock is not None and p.stock <= 0:
+        flash("This product is out of stock.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+    try:
+        raw_qty = int(request.form.get("qty", "1"))
+    except (TypeError, ValueError):
+        raw_qty = 1
+    qty = max(1, min(99, raw_qty))
+    if p.stock is not None and qty > p.stock:
+        flash(f"Only {p.stock}in stock.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+
+    if not flw.flutterwave_enabled(current_app):
+        flash("Online payments are not enabled yet. Please use WhatsApp to order.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+
+    unit = p.discounted_price if p.discount else p.price
+    amount = unit * qty
+    order = Order(
+        product_id=p.id,
+        vendor_id=p.vendor_id,
+        qty=qty,
+        amount=amount,
+        customer_name=(request.form.get("name") or "").strip()[:120],
+        customer_phone=(request.form.get("phone") or "").strip()[:30],
+        customer_email=(request.form.get("email") or "").strip()[:120],
+        customer_address=(request.form.get("address") or "").strip()[:255],
+        tx_ref=f"mymarket-order-{int(time.time())}-{p.id}",
+    )
+    db.session.add(order)
+    db.session.commit()
+    link = flw.create_merchant_checkout(
+        current_app,
+        amount,
+        order.tx_ref,
+        {
+            "email": order.customer_email or "buyer@example.com",
+            "phonenumber": order.customer_phone or "",
+            "name": order.customer_name or "Buyer",
+        },
+        p.vendor,
+        f"{p.name} × {qty}",
+        url_for("payments.order_callback", _external=True),
+    )
+    if not link:
+        order.status = "cancelled"
+        db.session.commit()
+        flash("Could not start checkout. Please try again.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+    return redirect(link)
+
+
+@bp.route("/payments/order-callback")
+def order_callback():
+    """Flutterwave redirects the customer here after a product order payment."""
+    status = request.args.get("status")
+    tx_ref = request.args.get("tx_ref")
+    transaction_id = request.args.get("transaction_id")
+    order = Order.query.filter_by(tx_ref=tx_ref).first() if tx_ref else None
+    if status in ("successful", "completed")and transaction_id:
+        ok, verified_ref = flw.verify_transaction(current_app, transaction_id)
+        if ok and order and verified_ref == order.tx_ref and order.status != "paid":
+            settle_order(order)
+            flash("Payment received! The vendor has been notified. Thank you 🎉", "success")
+            if order.customer_email:
+                from ..mail import send_mail
+                send_mail(
+                    order.customer_email,
+                    "Your MyMarket.ug order confirmation",
+                    f"Hi {order.customer_name or 'there'}, your order for {order.qty}x "
+                    f"{order.product.name} (UGX {order.amount:,}) is confirmed. "
+                    f"Vendor will contact you on {order.customer_phone or 'the number you gave'}.",
+                )
+            return redirect(url_for("main.product_view", product_id=order.product_id))
+    flash("Payment not confirmed. If money was deducted, contact support.", "error")
+    return redirect(url_for("main.product_view", product_id=p.id)) if (p := Order.query.filter_by(tx_ref=tx_ref).first()) else redirect("/")
 
 
 @bp.route("/vendor/checkout/<int:payment_id>", methods=["POST"])
@@ -99,4 +207,9 @@ def webhook():
         payment = Payment.query.filter_by(tx_ref=tx_ref).first()
         if payment and payment.status != "paid":
             settle_payment(payment)
+        order = Order.query.filter_by(tx_ref=tx_ref).first()
+        if order and order.status != "paid":
+            settle_order(order)
+
+
     return jsonify({"ok": True})

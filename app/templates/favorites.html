@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Saved Products — MyMarket.ug{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-xl font-extrabold text-brand-700 mb-3">❤️ Saved Products</h1>
+  <p class="text-sm text-gray-500 mb-4">Products you saved are stored on this device.</p>
+  <div id="favList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+  <p id="favEmpty" class="text-gray-500 text-sm hidden">Nothing saved yet. Browse the marketplace and tap “Save” on any product.</p>
+</div>
+<script>
+  async function renderFavs() {
+    const list = JSON.parse(localStorage.getItem('mymarket_favs') || '[]');
+    const empty = document.getElementById('favEmpty');
+    const grid = document.getElementById('favList');
+    if (!list.length) { empty.classList.remove('hidden'); return; }
+    const ids = list.map(f => f.id).join(',');
+    const res = await fetch('/api/favorites?ids=' + ids);
+    const items = await res.json();
+    grid.innerHTML = items.map(p => `
+      <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
+        <a href="/product/${p.id}">
+          <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
+            ${p.image_url ? `<img src="${p.image_url}" class="object-cover w-full h-full" alt="${p.name}}">` : '<span class="text-4xl">🛍️</span>'}
+          </div>
+        </a>
+        <div class="p-2">
+          <div class="font-semibold text-sm line-clamp-1">${p.name}</div>
+          <div class="text-brand-700 font-bold text-sm">UGX ${p.price_formatted}</div>
+        </div>
+      </div>`).join('');
+  }
+  renderFavs();
+</script>
+{% endblock %}
