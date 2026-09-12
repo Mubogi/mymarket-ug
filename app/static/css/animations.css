@@ -23,13 +23,16 @@ html.js .reveal.in {
   html.js .reveal, html.js .reveal.in { opacity: 1; transform: none; transition: none; }
 }
 
-/* ---------- Page content fade-in ---------- */
+/* ---------- Page content enter (never starts invisible) ----------
+   Content is fully readable instantly; the animation only adds a tiny
+   motion so pages never flash "empty" while entering.
+   */
 .fade-in {
-  animation: fadeIn .45s ease both;
+  animation: enterTop .35s ease;
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
+@keyframes enterTop {
+  from { transform: translateY(6px); }
+  to   { transform: none; }
 }
 
 /* ---------- Card hover lift ---------- */
