@@ -67,7 +67,7 @@
 
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
   {% for p in products %}
-  <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
+  <div class="card-lift reveal bg-white rounded-xl border overflow-hidden shadow-sm">
     <a href="/product/{{ p.id }}">
       <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
         {% if p.image_url %}<img src="{{ p.image_url }}" class="object-cover w-full h-full" alt="{{ p.name }}">{% else %}<span class="text-4xl">🛍️</span>{% endif %}

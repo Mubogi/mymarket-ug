@@ -1,0 +1,129 @@
+/* MyMarket.ug — micro-animations & responsive polish (plays nicely with Tailwind) */
+
+/* ---------- Scroll reveal ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .5s ease, transform .5s cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity, transform;
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---------- Page content fade-in ---------- */
+.fade-in {
+  animation: fadeIn .45s ease both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- Card hover lift ---------- */
+.card-lift {
+  transition: transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s ease, border-color .25s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -12px rgba(22, 101, 52, .28);
+  border-color: rgba(22, 101, 52, .35);
+}
+.card-lift:active {
+  transform: translateY(-1px) scale(.98);
+}
+
+/* ---------- Spotlight rail cards ---------- */
+.spotlight-card {
+  position: relative;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1), box-shadow .3s ease;
+}
+.spotlight-card:hover {
+  transform: translateY(-5px) rotate(-1deg);
+  box-shadow: 0 16px 32px -14px rgba(22, 101, 52, .35);
+}
+.spotlight-card img {
+  transition: transform .5s cubic-bezier(.22, 1, .36, 1);
+}
+.spotlight-card:hover img {
+  transform: scale(1.08);
+}
+.badge-pulse {
+  animation: pulseGlow 2.2s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .0); opacity: 1; }
+  50%      { box-shadow: 0 0 12px 2px rgba(245, 158, 11, .55); opacity: .92; }
+}
+
+/* ---------- Buttons ---------- */
+.btn-pop {
+  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+}
+.btn-pop:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.btn-pop:active { transform: translateY(1px) scale(.97); }
+
+/* ---------- Near-me pulsing dot ---------- */
+.pulse-dot {
+  position: relative;
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid rgba(21, 128, 61, .6);
+  animation: pingRing 1.8s cubic-bezier(0, 0, .2, 1) infinite;
+}
+@keyframes pingRing {
+  0%   { transform: scale(1);   opacity: .7; }
+  70%, 100% { transform: scale(1.45); opacity: 0; }
+}
+
+/* ---------- Image shimmer while loading ---------- */
+.img-skeleton {
+  background: linear-gradient(100deg, #eef2ee 40%, #f6faf6 50%, #eef2ee 60%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* ---------- Marquee (repeat) ---------- */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-fast {
+  display: inline-flex;
+  animation: marquee-x 18s linear infinite;
+}
+
+/* ---------- Mobile scroll snap rails ---------- */
+.snap-rail {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-item { scroll-snap-align: start; }
+
+/* ---------- Ticker: fresh in spotlight ---------- */
+.ticker-bar {
+  background: linear-gradient(90deg, #16a34a, #15803d, #16a34a);
+  background-size: 200% 100%;
+  animation: gradientSlide 6s ease infinite;
+}
+@keyframes gradientSlide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ---------- Reduce layout shift on tall header ---------- */
+@media (max-width: 480px) {
+  .micro-text { font-size: 11px !important; }
+}

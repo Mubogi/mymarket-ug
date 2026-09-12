@@ -252,7 +252,13 @@ def index():
                 db.session.query(Product.id).filter(Product.category == category)
             ))
         )
-    spotlights = spotlight_q.order_by(Spotlight.created_at.desc()).limit(12).all()
+    # Today's features first, then upcoming ones. Cap at 6 to keep the grid tight.
+    today = date.today()
+    spotlights = spotlight_q.order_by(
+        db.case((Spotlight.day == today, 0), else_=1),
+        Spotlight.day.asc(),
+        Spotlight.id.desc(),
+    ).limit(6).all()
 
     geo_city = near_city if near_city else (city if city in CITIES else "")
     response = make_response(

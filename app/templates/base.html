@@ -9,6 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <meta name="theme-color" content="#15803d">
+  <link rel="stylesheet" href="/static/css/animations.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script>
@@ -68,7 +69,7 @@
     {% endif %}
   {% endwith %}
 
-  <main class="flex-1 w-full max-w-6xl mx-auto px-3 py-4">
+  <main class="flex-1 w-full max-w-6xl mx-auto px-3 py-4 fade-in">
     {% block content %}{% endblock %}
   </main>
 
@@ -112,6 +113,23 @@
     }
     // Always show the button after 3s as a fallback (iOS has no beforeinstallprompt)
     try { setTimeout(() => document.getElementById('installAppBtn').classList.remove('hidden'), 3000); } catch (e) {}
+  </script>
+
+  <script>
+    // Scroll-reveal + hover animation hooks (CSS handles the visuals)
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window) || !els.length) {
+        els.forEach(function (el) { el.classList.add('in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
+      els.forEach(function (el) { io.observe(el); });
+    })();
   </script>
   {% block scripts %}{% endblock %}
 </body>

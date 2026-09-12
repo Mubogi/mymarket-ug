@@ -11,7 +11,7 @@
     </div>
     <div class="flex items-center gap-2 flex-none">
       <button type="button" onclick="useMyLocation()"
-        class="px-3 py-2.5 rounded-full border border-brand-600 text-brand-700 text-sm font-bold flex items-center gap-1 bg-white shadow-sm">
+        class="pulse-dot btn-pop px-3 py-2.5 rounded-full border border-brand-600 text-brand-700 text-sm font-bold flex items-center gap-1 bg-white shadow-sm">
         <span class="text-base">📌</span><span class="hidden sm:inline">Near me</span><span class="sm:hidden">Near</span>
       </button>
     </div>
@@ -21,18 +21,18 @@
 
 <div id="geoBanner" class="hidden mb-2"></div>
 
-<!-- Filter chips row -->
-<div class="flex flex-wrap items-center gap-2 mb-3 text-sm" x-data>
+<!-- Filter chips row (scrollable on mobile) -->
+<div class="flex items-center gap-2 mb-3 text-sm overflow-x-auto no-scrollbar snap-rail py-1 -mx-1 px-1">
   {% if city %}
-  <span class="px-3 py-1.5 rounded-full bg-brand-600 text-white font-bold">📍 {{ city }}
+  <span class="snap-item flex-none px-3 py-1.5 rounded-full bg-brand-600 text-white font-bold">📍 {{ city }}
     <a href="{{ url_for('main.index', q=q, category=category, sort=sort_by, deal=deal) }}" class="ml-1 hover:text-brand-200">&times;</a>
   </span>
   {% endif %}
   <a href="/?city=&q={{ q }}&category={{ category }}&sort={{ sort_by }}&deal={{ deal }}"
-     class="px-3 py-1.5 rounded-full border whitespace-nowrap {{ 'bg-brand-600 text-white border-brand-600' if not city else 'bg-white' }}">All locations</a>
+     class="snap-item flex-none px-3 py-1.5 rounded-full border whitespace-nowrap {{ 'bg-brand-600 text-white border-brand-600' if not city else 'bg-white' }}">All locations</a>
   {% for c in cities %}
     <a href="/?city={{ c }}&q={{ q }}&category={{ category }}&sort={{ sort_by }}&deal={{ deal }}"
-       class="px-3 py-1.5 rounded-full border whitespace-nowrap {{ 'bg-brand-600 text-white border-brand-600' if city == c else 'bg-white' }}">{{ c }}</a>
+       class="snap-item flex-none px-3 py-1.5 rounded-full border whitespace-nowrap {{ 'bg-brand-600 text-white border-brand-600' if city == c else 'bg-white' }}">{{ c }}</a>
   {% endfor %}
 </div>
 
@@ -80,33 +80,40 @@
 <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6 text-center text-xs">
   {% for c in categories %}
     <a href="/?category={{ c }}&q={{ q }}&city={{ city }}&sort={{ sort_by }}&deal={{ deal }}"
-       class="rounded-xl p-2 border font-semibold {{ 'bg-brand-600 text-white border-brand-600' if category == c else 'bg-brand-50 border-transparent text-gray-700' }}">
+       class="btn-pop rounded-xl p-2 border font-semibold {{ 'bg-brand-600 text-white border-brand-600' if category == c else 'bg-brand-50 border-transparent text-gray-700' }}">
       <span class="block text-2xl mb-1">{% if c=='Phones' %}📱{% elif c=='Clothes' %}👕{% elif c=='Shoes' %}👟{% elif c=='Bags' %}👜{% else %}🔌{% endif %}</span>{{ c }}
     </a>
   {% endfor %}
-  {% if category %}<a href="/?q={{ q }}&city={{ city }}" class="rounded-xl p-2 border border-red-200 bg-red-50 text-red-600 font-semibold grid place-items-center">&times; All</a>{% endif %}
+  {% if category %}<a href="/?q={{ q }}&city={{ city }}" class="btn-pop rounded-xl p-2 border border-red-200 bg-red-50 text-red-600 font-semibold grid place-items-center">&times; All</a>{% endif %}
 </div>
 
 {% if spotlights %}
-    <section>
-      <div class="flex items-center justify-between mt-2 mb-4">
-        <h2 class="text-xl font-bold text-gray-900">&#9733; Spotlight Picks</h2>
-        <span class="text-xs text-gray-500">Fresh 24h features</span>
+    <section class="fade-in">
+      <div class="flex items-center justify-between mt-3 mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <span class="text-2xl">⭐</span> Spotlight Picks
+        </h2>
+        <span class="text-xs text-gray-500 ticker-bar text-white rounded-full px-2.5 py-1 font-semibold">Fresh 24h</span>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
       {% for sp in spotlights %}
-        <div class="rounded-lg p-2 bg-amber-50 border-amber-200 border">
+        <div class="spotlight-card rounded-2xl p-2.5 bg-gradient-to-br from-amber-50 via-white to-brand-50 border border-amber-200">
           {% if sp.kind == 'product' and sp.product %}
             <a href="/product/{{ sp.product.id }}" class="block text-center">
-              {% if sp.product.image_url %}<img src="{{ sp.product.image_url }}" class="h-20 w-20 object-cover mx-auto rounded">{% else %}<span class="h-20 w-20 rounded grid place-items-center text-3xl mx-auto">🛍️</span>{% endif %}
-              <p class="text-sm font-semibold line-clamp-1">{{ sp.product.name }}</p>
-              <p class="text-xs text-gray-500">UGX {{ sp.product.price }}</p>
+              <div class="relative">
+                {% if sp.product.image_url %}<img src="{{ sp.product.image_url }}" loading="lazy" class="aspect-square w-full object-cover mx-auto rounded-xl">{% else %}<div class="aspect-square w-full rounded-xl grid place-items-center text-4xl bg-white">🛍️</div>{% endif %}
+                <span class="absolute top-1 left-1 text-[9px] font-bold bg-amber-400 text-black rounded-full px-1.5 py-0.5 badge-pulse">★ NEW</span>
+              </div>
+              <p class="text-sm font-semibold line-clamp-1 mt-2">{{ sp.product.name }}</p>
+              <p class="text-xs text-brand-700 font-bold">{{ sp.product.discounted_price if sp.product.discount else sp.product.price|ugx }} UGX</p>
+              {% if sp.product.discount %}<p class="text-[10px] text-red-500 line-through">UGX {{ sp.product.price|ugx }}</p>{% endif %}
             </a>
           {% elif sp.kind == 'shop' and sp.vendor %}
             <a href="/shop/{{ sp.vendor.slug }}" class="block text-center">
-              {% if sp.vendor.logo %}<img src="{{ sp.vendor.logo }}" class="h-20 w-20 object-cover mx-auto rounded">{% else %}<span class="h-20 w-20 rounded grid place-items-center text-3xl mx-auto">🏪</span>{% endif %}
-              <p class="text-sm font-semibold line-clamp-1">{{ sp.vendor.shop_name }}</p>
+              {% if sp.vendor.logo %}<img src="{{ sp.vendor.logo }}" loading="lazy" class="aspect-square w-full object-cover mx-auto rounded-xl">{% else %}<div class="aspect-square w-full rounded-xl grid place-items-center text-4xl bg-white">🏪</div>{% endif %}
+              <p class="text-sm font-semibold line-clamp-1 mt-2">{{ sp.vendor.shop_name }}</p>
               <p class="text-xs text-gray-500">Shop</p>
+              {% if sp.vendor.is_verified %}<span class="text-[10px] bg-brand-600 text-white rounded-full px-1.5 py-0.5 font-bold">✔ Verified</span>{% endif %}
             </a>
           {% endif %}
         </div>
@@ -116,10 +123,10 @@
 {% endif %}
 
 {% if trending and not active_filters %}
-<h2 class="text-lg font-bold text-brand-700 mb-3">🔥 Trending Now</h2>
-<div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 mb-6" style="scroll-snap-type:x mandatory">
+<h2 class="text-lg font-bold text-brand-700 mb-3 reveal">🔥 Trending Now</h2>
+<div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 mb-6 snap-rail">
   {% for p in trending %}
-  <a href="/product/{{ p.id }}" class="flex-shrink-0 w-40 bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow" style="scroll-snap-align:start">
+  <a href="/product/{{ p.id }}" class="card-lift flex-shrink-0 w-40 bg-white rounded-xl border overflow-hidden shadow-sm snap-item reveal">
     <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
       {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full">{% else %}<span class="text-3xl">🛍️</span>{% endif %}
     </div>
@@ -137,12 +144,12 @@
 {% endif %}
 
 {% if products %}
-<h2 class="text-lg font-bold text-brand-700 mb-3">🛍️ All Products{% if active_filters %} <span class="text-sm font-normal text-gray-500">({{ product_count }} match{{ '' if product_count == 1 else 'es' }})</span>{% else %} ({{ product_count }} from {{ vendor_count }} vendors){% endif %}</h2>
+<h2 class="text-lg font-bold text-brand-700 mb-3 reveal">🛍️ All Products{% if active_filters %} <span class="text-sm font-normal text-gray-500">({{ product_count }} match{{ '' if product_count == 1 else 'es' }})</span>{% else %} ({{ product_count }} from {{ vendor_count }} vendors){% endif %}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
   {% for p in products %}
-  <a href="/product/{{ p.id }}" class="bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow">
+  <a href="/product/{{ p.id }}" class="card-lift reveal bg-white rounded-xl border overflow-hidden shadow-sm">
     <div class="aspect-square bg-brand-50 flex items-center justify-center overflow-hidden">
-      {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full">{% else %}<span class="text-4xl">🛍️</span>{% endif %}
+      {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.name }}" class="object-cover w-full h-full" loading="lazy">{% else %}<span class="text-4xl">🛍️</span>{% endif %}
     </div>
     <div class="p-2">
       {% if p.boosted_now %}<span class="text-[10px] bg-amber-400 text-black font-bold px-1.5 rounded">BOOSTED</span>{% endif %}
@@ -159,19 +166,19 @@
   {% endfor %}
 </div>
 {% else %}
-  <div class="text-center py-16 text-gray-500">
+  <div class="text-center py-16 text-gray-500 fade-in">
     <p class="text-5xl mb-3">🔍</p>
     <p>No products found. Try a different search or location.</p>
-    <a href="/" class="inline-block mt-4 px-4 py-2 rounded-full bg-brand-600 text-white text-sm font-semibold">Clear all filters</a>
+    <a href="/" class="btn-pop inline-block mt-4 px-4 py-2 rounded-full bg-brand-600 text-white text-sm font-semibold">Clear all filters</a>
   </div>
 {% endif %}
 
 {% if featured_shops and not active_filters %}
-<div class="mt-10 mb-4">
+<div class="mt-10 mb-4 reveal">
   <h2 class="text-lg font-bold text-brand-700 mb-3">🏪 Featured Shops</h2>
-  <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1">
+  <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-rail">
     {% for v in featured_shops %}
-    <a href="/shop/{{ v.slug }}" class="flex-shrink-0 w-40 bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow p-3 text-center">
+    <a href="/shop/{{ v.slug }}" class="card-lift snap-item flex-shrink-0 w-40 bg-white rounded-xl border overflow-hidden shadow-sm p-3 text-center">
       <div class="w-16 h-16 rounded-full bg-brand-50 border mx-auto grid place-items-center text-3xl mb-2 overflow-hidden">
         {% if v.logo %}<img src="{{ v.logo }}" class="object-cover w-full h-full">{% else %}🏪{% endif %}
       </div>
