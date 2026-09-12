@@ -14,20 +14,66 @@ from flask import (
 )
 from flask_login import current_user
 
-from ..extensions import db
+from ..extensions import db, limiter
 from ..models import (
     AdCampaign,
     Analytics,
     CATEGORIES,
     CITIES,
+    DISTRICT_COORDS,
     MarketDay,
     Product,
     Review,
     Spotlight,
     Vendor,
 )
-from ..extensions import limiter
 from ..utils import boosted_first, escape_like, track
+
+DISTANCE_KM_PER_DEG = 111.0
+
+
+def _nearest_district(lat, lon):
+    """Return the district nearest to lat/lon plus distance in km."""
+    best_city, best_d = None, 1e9
+    for city, (clat, clon) in DISTRICT_COORDS.items():
+        d = ((clat - lat) ** 2 + (clon - lon) ** 2) ** 0.5 * DISTANCE_KM_PER_DEG
+        if d < best_d:
+            best_city, best_d = city, d
+    return best_city, best_d
+
+
+def _geo_city_from_request():
+    """Best-effort city hint from ?near=(lat,lon) (set by the browser's geolocation API).
+
+    We deliberately keep this on the client: the browser Geo API knows the user's
+    location without shipping any external IP-geolocation dependency. Cloudflare can
+    still narrow to country (adds no false-positive districts for non-Ugandans).
+    """
+    near = request.args.get("near", "").strip()
+    if near:
+        try:
+            lat, lon = map(float, near.split(","))
+            return _nearest_district(lat, lon)
+        except (ValueError, TypeError):
+            pass
+    return None, None
+
+
+def _has_active_filters(q, city, category, sort_by, deal, min_price, max_price, stock, verified, near):
+    return any(
+        [
+            q,
+            city,
+            category,
+            sort_by,
+            deal,
+            min_price is not None,
+            max_price is not None,
+            stock,
+            verified,
+            near,
+        ]
+    )
 
 bp = Blueprint("main", __name__)
 
@@ -77,9 +123,25 @@ def index():
     sort_by = request.args.get("sort", "")
     deal = request.args.get("deal", "")
 
-    qry = _visible_products().order_by(
-        db.desc(Product.is_boosted), db.desc(Product.created_at)
-    )
+    # Price / availability / verified toggles
+    try:
+        min_price = float(request.args.get("min", "")) if request.args.get("min") else None
+    except ValueError:
+        min_price = None
+    try:
+        max_price = float(request.args.get("max", "")) if request.args.get("max") else None
+    except ValueError:
+        max_price = None
+    stock = request.args.get("stock", "") == "1"
+    verified = request.args.get("verified", "") == "1"
+
+    # Browser-geolocated district, e.g. ?near=0.3476,32.5825
+    near_city, _ = _geo_city_from_request()
+    geo_detected = bool(near_city)
+    if near_city and not city:
+        city = near_city
+
+    qry = _visible_products()
     if q:
         like = f"%{escape_like(q)}%"
         qry = qry.filter(
@@ -89,10 +151,22 @@ def index():
                 Vendor.shop_name.ilike(like),
             )
         )
-    if city:
+    if city and city in CITIES:
         qry = qry.filter(Vendor.location_city == city)
     if category:
         qry = qry.filter(Product.category == category)
+    if min_price is not None:
+        qry = qry.filter(Product.price >= min_price)
+    if max_price is not None:
+        qry = qry.filter(Product.price <= max_price)
+    if stock:
+        qry = qry.filter(db.or_(Product.stock.is_(None), Product.stock > 0))
+    if verified:
+        qry = qry.filter(Vendor.is_verified.is_(True))
+    if deal:
+        qry = qry.filter(Product.discount > 0)
+
+    explicit_sort = sort_by
     if sort_by == "price_asc":
         qry = qry.order_by(Product.price.asc())
     elif sort_by == "price_desc":
@@ -101,54 +175,86 @@ def index():
         qry = qry.order_by(Product.created_at.desc())
     elif sort_by == "popular":
         qry = qry.order_by(Product.views_count.desc())
-    if deal:
-        qry = qry.filter(Product.discount > 0)
-
-    products = boosted_first(qry.limit(200).all())
-
-    # Trending products (most viewed, from active vendors)
-    trending = (
-        _visible_products()
-        .order_by(Product.views_count.desc())
-        .limit(8)
-        .all()
-    )
-
-    # Deals of the day (discounted products)
-    deals = (
-        _visible_products()
-        .filter(Product.discount > 0, Product.discount.isnot(None))
-        .order_by(db.desc(Product.discount))
-        .limit(10)
-        .all()
-    )
-
-    # Featured shops: active+verified, with at least 3 products, most shop views
-    shop_views_subq = (
-        db.session.query(
-            Analytics.vendor_id,
-            db.func.count(Analytics.id).label("sv"),
+    else:
+        # Default: boosted first, then newest
+        qry = qry.order_by(
+            db.desc(Product.is_boosted), db.desc(Product.created_at)
         )
-        .filter(Analytics.type == "shop_view", Analytics.vendor_id.isnot(None))
-        .group_by(Analytics.vendor_id)
-        .subquery()
+        explicit_sort = ""
+
+    filtered_count = qry.count()
+    products = qry.limit(200).all()
+    # Only re-sort by boosted/verified when there's no explicit sort — otherwise
+    # an explicit price/newest sort must be honored exactly.
+    if not explicit_sort:
+        products = boosted_first(products)
+
+    # When the user is actively filtering, hide sideline rails (Trending/Deals) —
+    # they confused "shows all products" and made filters look broken.
+    has_filters = _has_active_filters(
+        q, city, category, explicit_sort, deal,
+        min_price, max_price, stock, verified, near_city,
     )
-    featured_shops = (
-        Vendor.query.filter(
-            Vendor.is_active.is_(True),
-            Vendor.is_verified.is_(True),
+
+    trending = deals = featured_shops = []
+    if not has_filters:
+        # Trending products (most viewed, from active vendors)
+        trending = (
+            _visible_products()
+            .order_by(Product.views_count.desc())
+            .limit(8)
+            .all()
         )
-        .outerjoin(shop_views_subq, shop_views_subq.c.vendor_id == Vendor.id)
-        .order_by(db.desc(shop_views_subq.c.sv), Vendor.created_at.desc())
-        .limit(6)
-        .all()
-    )
-    featured_shops = [v for v in featured_shops if len(v.products or []) >= 3][:6]
+        # Deals of the day (discounted products)
+        deals = (
+            _visible_products()
+            .filter(Product.discount > 0, Product.discount.isnot(None))
+            .order_by(db.desc(Product.discount))
+            .limit(10)
+            .all()
+        )
+        # Featured shops: active+verified, with at least 3 products, most shop views
+        shop_views_subq = (
+            db.session.query(
+                Analytics.vendor_id,
+                db.func.count(Analytics.id).label("sv"),
+            )
+            .filter(Analytics.type == "shop_view", Analytics.vendor_id.isnot(None))
+            .group_by(Analytics.vendor_id)
+            .subquery()
+        )
+        featured_shops = (
+            Vendor.query.filter(
+                Vendor.is_active.is_(True),
+                Vendor.is_verified.is_(True),
+            )
+            .outerjoin(shop_views_subq, shop_views_subq.c.vendor_id == Vendor.id)
+            .order_by(db.desc(shop_views_subq.c.sv), Vendor.created_at.desc())
+            .limit(6)
+            .all()
+        )
+        featured_shops = [v for v in featured_shops if len(v.products or []) >= 3][:6]
 
     # Shop count for hero stat
     vendor_count = Vendor.query.filter_by(is_active=True).count()
-    product_count = _visible_products().count() or 0
+    product_count = filtered_count or _visible_products().count() or 0
 
+    # Spotlight rail: respect city/category filters so it isn't a mix that
+    # contradicts the filtered grid (which made "shows all" feel true).
+    spotlight_q = Spotlight.query.filter(Spotlight.status == "active")
+    if city and city in CITIES:
+        spotlight_q = spotlight_q.join(Vendor, Vendor.id == Spotlight.vendor_id).filter(
+            Vendor.location_city == city
+        )
+    if category:
+        spotlight_q = spotlight_q.filter(
+            db.or_(Spotlight.kind == "shop", Spotlight.product_id.in_(
+                db.session.query(Product.id).filter(Product.category == category)
+            ))
+        )
+    spotlights = spotlight_q.order_by(Spotlight.created_at.desc()).limit(12).all()
+
+    geo_city = near_city if near_city else (city if city in CITIES else "")
     response = make_response(
         render_template(
             "index.html",
@@ -166,18 +272,35 @@ def index():
             category=category,
             sort_by=sort_by,
             deal=deal,
-            spotlights=(
-                Spotlight.query.filter(Spotlight.status == "active")
-                .order_by(Spotlight.created_at.desc())
-                .limit(12)
-                .all()
-            ),
+            min_price=min_price,
+            max_price=max_price,
+            stock=stock,
+            verified=verified,
+            has_filters=has_filters,
+            geo_city=geo_city,
+            geo_detected=geo_detected,
+            near=request.args.get("near", ""),
+            spotlights=spotlights,
         )
     )
     # Let Cloudflare/other CDNs cache the homepage for anonymous visitors
-    if not current_user.is_authenticated:
+    if not current_user.is_authenticated and not has_filters:
         response.headers["Cache-Control"] = "public, max-age=60, s-maxage=120"
     return response
+
+
+@bp.route("/api/nearby")
+def api_nearby():
+    """Return the closest district + km for a browser geolocation coordinate."""
+    lat, lon = request.args.get("lat", ""), request.args.get("lon", "")
+    try:
+        la, lo = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return jsonify({"error": "bad coordinates", "district": None, "km": None}), 400
+    if not (-90 <= la <= 90) or not (-180 <= lo <= 180):
+        return jsonify({"error": "bad coordinates", "district": None, "km": None}), 400
+    district, km = _nearest_district(la, lo)
+    return jsonify({"district": district, "km": round(km, 1)})
 
 
 @bp.route("/shop/<slug>")
@@ -192,6 +315,7 @@ def shop_page(vendor):
     track(vendor.id, "shop_view")
     # Only visible products; optional in-shop search
     q = request.args.get("q", "").strip()
+    sort_by = request.args.get("sort", "")
     qry = Product.query.filter(
         Product.vendor_id == vendor.id,
         Product.is_hidden.is_(False),
@@ -201,7 +325,19 @@ def shop_page(vendor):
         qry = qry.filter(
             db.or_(Product.name.ilike(like), Product.description.ilike(like))
         )
-    products = boosted_first(qry.limit(200).all())
+    if sort_by == "price_asc":
+        qry = qry.order_by(Product.price.asc())
+    elif sort_by == "price_desc":
+        qry = qry.order_by(Product.price.desc())
+    elif sort_by == "newest":
+        qry = qry.order_by(Product.created_at.desc())
+    elif sort_by == "popular":
+        qry = qry.order_by(Product.views_count.desc())
+    else:
+        qry = qry.order_by(db.desc(Product.is_boosted), db.desc(Product.created_at))
+    products = qry.limit(200).all()
+    if not sort_by:
+        products = boosted_first(products)
     product_count = qry.count()
     avg_rating = None
     rating_count = 0
@@ -209,6 +345,12 @@ def shop_page(vendor):
     if reviews:
         avg_rating = round(sum(r.rating for r in reviews) / len(reviews), 1)
         rating_count = len(reviews)
+
+    # Coordinates for "Open in Maps" (from the district table, gracefully degrades)
+    coords = DISTRICT_COORDS.get(vendor.location_city or "")
+    lat = coords[0] if coords else ""
+    lon = coords[1] if coords else ""
+
     return render_template(
         "shop.html",
         vendor=vendor,
@@ -217,6 +359,9 @@ def shop_page(vendor):
         avg_rating=avg_rating,
         rating_count=rating_count,
         q=q,
+        sort_by=sort_by,
+        lat=lat,
+        lon=lon,
         basedomain=True,
     )
 
@@ -333,7 +478,9 @@ def add_review(product_id):
 def go_whatsapp(product_id):
     p = Product.query.get_or_404(product_id)
     track(p.vendor_id, "whatsapp_click", p.id)
-    raw = p.vendor.whatsapp or p.vendor.phone or (p.vendor.user.phone if p.vendor.user else "")
+    phone = "".join(
+        c for c in (p.vendor.whatsapp or p.vendor.phone or (p.vendor.user.phone if p.vendor.user else "")) if c.isdigit()
+    )
     if phone.startswith("0"):
         phone = "256" + phone[1:]
     text = f"Hi {p.vendor.shop_name}, I saw '{p.name}' on MyMarket.ug"

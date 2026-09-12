@@ -24,11 +24,23 @@
       {% if product.vendor.is_verified %}<span class="text-xs bg-brand-600 text-white px-1.5 rounded-full">✔</span>{% endif %}
       <span class="text-gray-400 font-normal">· {{ product.vendor.location_city }}</span>
     </a>
-    {% if product.vendor.phone or product.vendor.whatsapp or product.vendor.opening_hours %}
+    {% if product.vendor.phone or product.vendor.whatsapp or product.vendor.opening_hours or product.vendor.facebook or product.vendor.instagram or product.vendor.tiktok or product.vendor.twitter or product.vendor.website %}
     <div class="text-xs text-gray-500 mt-2 space-y-0.5">
       {% if product.vendor.opening_hours %}<div>🕒 {{ product.vendor.opening_hours }}</div>{% endif %}
       {% if product.vendor.phone %}<div>📞 {{ product.vendor.phone }}</div>{% endif %}
       {% if product.vendor.whatsapp %}<div>💬 WhatsApp: {{ product.vendor.whatsapp }}</div>{% endif %}
+      <div class="flex flex-wrap gap-2 mt-1 pt-1 border-t border-gray-100">
+        <a href="/shop/{{ product.vendor.slug }}" class="inline-flex items-center gap-1 text-brand-700 font-semibold">🏪 Visit full shop</a>
+        {% if product.vendor.website %}<a href="{{ product.vendor.website }}" target="_blank" rel="noopener" class="text-brand-700 font-semibold">🌐 Website</a>{% endif %}
+        {% if product.vendor.facebook %}<a href="{{ product.vendor.facebook }}" target="_blank" rel="noopener">📘</a>{% endif %}
+        {% if product.vendor.instagram %}<a href="{{ product.vendor.instagram }}" target="_blank" rel="noopener">📸</a>{% endif %}
+        {% if product.vendor.tiktok %}<a href="{{ product.vendor.tiktok }}" target="_blank" rel="noopener">🎵</a>{% endif %}
+        {% if product.vendor.twitter %}<a href="{{ product.vendor.twitter }}" target="_blank" rel="noopener">🐦</a>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="text-xs text-gray-500 mt-2">
+      <a href="/shop/{{ product.vendor.slug }}" class="inline-flex items-center gap-1 text-brand-700 font-semibold">🏪 Visit full shop</a>
     </div>
     {% endif %}
     <div class="flex gap-2 mt-2">
@@ -37,17 +49,17 @@
     </div>
     <p class="text-xs text-gray-400 mt-1">{{ product.views_count }} views</p>
   </div>
-  <div class="sticky bottom-3 flex gap-2 mt-6">
+  <div class="sticky bottom-3 grid grid-cols-2 gap-2 mt-6">
     {% if product.stock ==  0 %}
-    <span class="flex-1 text-center bg-gray-300 text-gray-600 font-bold rounded-xl py-3 shadow cursor-not-allowed">Out of stock</span>
+    <span class="col-span-2 text-center bg-gray-300 text-gray-600 font-bold rounded-xl py-3 shadow cursor-not-allowed">Out of stock</span>
     {% elif product.stock is not none and product.stock < 3 %}
-    <button onclick="openBuyModal()" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now (low stock)</button>
+    <button onclick="openBuyModal()" class="col-span-2 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now (low stock)</button>
     {% else %}
-    <button onclick="openBuyModal()" class="flex-1 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now</button>
+    <button onclick="openBuyModal()" class="col-span-2 text-center bg-brand-600 text-white font-bold rounded-xl py-3 shadow">🛒 Buy Now</button>
     {% endif %}
-    <a href="/go/whatsapp/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">💬 WhatsApp</a>
-    <a href="/go/call/{{ product.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">📞 Call</a>
-    <a href="/chat/{{ product.vendor.id }}" class="flex-1 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-3 bg-white shadow">💭 Chat</a>
+    <a href="/go/whatsapp/{{ product.id }}" class="text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-2.5 bg-white shadow">💬 WhatsApp</a>
+    <a href="/go/call/{{ product.id }}" class="text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-2.5 bg-white shadow">📞 Call</a>
+    <a href="/chat/{{ product.vendor.id }}" class="col-span-2 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-2.5 bg-white shadow">💭 Chat with shop</a>
   </div>
 
   <!-- REVIEWS -->

@@ -362,6 +362,17 @@
       <input name="contact_whatsapp" placeholder="WhatsApp number" class="w-full border rounded-lg px-3 py-2" value="{{ v.whatsapp or '' }}">
       <input name="contact_email" placeholder="Public contact email" class="w-full border rounded-lg px-3 py-2" value="{{ v.email or '' }}">
       <input name="opening_hours" placeholder="Opening hours (e.g. Mon-Sat 9am-6pm)" class="w-full border rounded-lg px-3 py-2" value="{{ v.opening_hours or '' }}">
+      <details class="border rounded-lg p-3 text-sm">
+        <summary class="cursor-pointer font-semibold text-gray-700">🌐 Social &amp; website links</summary>
+        <div class="space-y-2 mt-2">
+          <input name="website" placeholder="Website link (https://…)" class="w-full border rounded-lg px-3 py-2" value="{{ v.website or '' }}">
+          <input name="facebook" placeholder="Facebook link/username" class="w-full border rounded-lg px-3 py-2" value="{{ v.facebook or '' }}">
+          <input name="instagram" placeholder="Instagram link/username" class="w-full border rounded-lg px-3 py-2" value="{{ v.instagram or '' }}">
+          <input name="tiktok" placeholder="TikTok link/username" class="w-full border rounded-lg px-3 py-2" value="{{ v.tiktok or '' }}">
+          <input name="twitter" placeholder="Twitter (X) link/username" class="w-full border rounded-lg px-3 py-2" value="{{ v.twitter or '' }}">
+          <p class="text-[11px] text-gray-400">These show as buttons on your public shop page.</p>
+        </div>
+      </details>
       <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-2.5">Save Settings</button>
     </form>
   </section>

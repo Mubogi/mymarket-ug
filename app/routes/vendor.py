@@ -128,6 +128,11 @@ def signup():
             whatsapp=f.get("contact_whatsapp", ""),
             email=f.get("contact_email", ""),
             opening_hours=f.get("opening_hours", ""),
+            website=f.get("website", ""),
+            facebook=f.get("facebook", ""),
+            instagram=f.get("instagram", ""),
+            tiktok=f.get("tiktok", ""),
+            twitter=f.get("twitter", ""),
         )
         # Referral: credit the referrer when this vendor signs up
         ref_slug = request.args.get("ref", "").strip()
@@ -501,6 +506,11 @@ def settings():
     v.whatsapp = request.form.get("contact_whatsapp", v.whatsapp or "")
     v.email = request.form.get("contact_email", v.email or "")
     v.opening_hours = request.form.get("opening_hours", v.opening_hours or "")
+    v.website = request.form.get("website", v.website or "")
+    v.facebook = request.form.get("facebook", v.facebook or "")
+    v.instagram = request.form.get("instagram", v.instagram or "")
+    v.tiktok = request.form.get("tiktok", v.tiktok or "")
+    v.twitter = request.form.get("twitter", v.twitter or "")
     logo = save_upload(request.files.get("logo"))
     if logo:
         v.logo = logo

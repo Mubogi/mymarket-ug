@@ -17,6 +17,12 @@
   <style>
     .marquee { display:flex; gap:2rem; white-space:nowrap; animation: scroll 25s linear infinite; }
     @keyframes scroll { from { transform: translateX(100%);} to { transform: translateX(-100%);} }
+    html { scroll-behavior: smooth; }
+    body { -webkit-tap-highlight-color: transparent; }
+    input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-white text-gray-800 min-h-screen flex flex-col">
@@ -33,20 +39,20 @@
   {% endif %}
 
   <header class="sticky top-0 bg-white/95 backdrop-blur border-b z-30">
-    <div class="max-w-6xl mx-auto px-3 py-3 flex items-center gap-3">
-      <a href="/" class="flex items-center gap-2 font-extrabold text-xl text-brand-700">
-        <img src="/static/logo.svg" alt="MyMarket.ug logo" class="w-9 h-9">
-        MyMarket<span class="text-gray-500">.ug</span>
+    <div class="max-w-6xl mx-auto px-3 py-2.5 flex items-center gap-2 sm:gap-3">
+      <a href="/" class="flex items-center gap-1.5 sm:gap-2 font-extrabold text-lg sm:text-xl text-brand-700 shrink-0">
+        <img src="/static/logo.svg" alt="MyMarket.ug logo" class="w-8 h-8 sm:w-9 sm:h-9">
+        <span>MyMarket<span class="text-gray-500">.ug</span></span>
       </a>
-      <div class="ml-auto flex items-center gap-2">
-        <a href="/favorites" class="text-sm font-semibold text-brand-700">❤️ Saved</a>
-        <button id="installAppBtn" onclick="installApp()" class="hidden px-3 py-1.5 rounded-full border-2 border-brand-600 text-brand-700 text-sm font-bold">⬇ Download App</button>
+      <div class="ml-auto flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm overflow-x-auto">
+        <a href="/favorites" class="font-semibold text-brand-700 whitespace-nowrap">❤️ <span class="hidden sm:inline">Saved</span></a>
+        <button id="installAppBtn" onclick="installApp()" class="hidden px-2 sm:px-3 py-1.5 rounded-full border-2 border-brand-600 text-brand-700 font-bold whitespace-nowrap text-xs sm:text-sm">⬇ <span class="hidden sm:inline">Download App</span></button>
         {% if current_user.is_authenticated %}
-          <a href="{% if current_user.is_admin %}/admin{% else %}/vendor{% endif %}" class="text-sm font-semibold text-brand-700">Dashboard</a>
-          <a href="/vendor/logout" class="text-xs text-gray-500">Logout</a>
+          <a href="{% if current_user.is_admin %}/admin{% else %}/vendor{% endif %}" class="font-semibold text-brand-700 whitespace-nowrap">Dashboard</a>
+          <a href="/vendor/logout" class="text-gray-500 whitespace-nowrap">Logout</a>
         {% else %}
-          <a href="/vendor/login" class="text-sm font-semibold text-brand-700">Vendor Login</a>
-          <a href="/vendor/signup" class="px-3 py-1.5 rounded-full bg-brand-600 text-white text-sm font-semibold">Apply to be a Vendor</a>
+          <a href="/vendor/login" class="font-semibold text-brand-700 whitespace-nowrap">Vendor Login</a>
+          <a href="/vendor/signup" class="px-2 sm:px-3 py-1.5 rounded-full bg-brand-600 text-white font-semibold whitespace-nowrap">Apply to sell</a>
         {% endif %}
       </div>
     </div>
@@ -105,7 +111,8 @@
       }
     }
     // Always show the button after 3s as a fallback (iOS has no beforeinstallprompt)
-    setTimeout(() => document.getElementById('installAppBtn').classList.remove('hidden'), 3000);
+    try { setTimeout(() => document.getElementById('installAppBtn').classList.remove('hidden'), 3000); } catch (e) {}
   </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

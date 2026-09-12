@@ -49,6 +49,11 @@ class Vendor(db.Model):
     whatsapp = db.Column(db.String(30))  # separate WhatsApp number if different
     email = db.Column(db.String(120))  # public contact email
     opening_hours = db.Column(db.String(160))  # e.g. "Mon–Sat 9am–6pm"
+    facebook = db.Column(db.String(255))  # social links shown on the shop mini-site
+    instagram = db.Column(db.String(255))
+    tiktok = db.Column(db.String(255))
+    twitter = db.Column(db.String(255))
+    website = db.Column(db.String(255))
     referred_by = db.Column(db.Integer, db.ForeignKey("vendors.id"))
     credit = db.Column(db.Integer, default=0, nullable=False)  # UGX referral/other credit
     flw_subaccount_id = db.Column(db.String(80))  # Flutterwave subaccount for merchant splits
@@ -267,4 +272,37 @@ class PushSubscription(db.Model):
 
 
 CATEGORIES = ["Phones", "Clothes", "Shoes", "Bags", "Electronics"]
-CITIES = ["Kampala", "Gulu", "Mbarara", "Mbale", "Arua", "Jinja"]
+# The full list of districts/areas used by the location picker — keep in sync with
+# app/static/js/uganda-locations.js. Used for the city/district filter + geolocation.
+CITIES = [
+    "Kampala", "Wakiso", "Jinja", "Mbarara", "Gulu", "Mbale", "Arua", "Masaka",
+    "Lira", "Fort Portal", "Kabale", "Tororo", "Soroti", "Hoima", "Kasese",
+    "Mityana", "Mukono", "Iganga", "Luwero", "Moroto", "Kitgum", "Busia", "Other",
+]
+
+# Approximate lat/lng (decimal degrees) for geolocation resolution.
+DISTRICT_COORDS = {
+    "Kampala": (0.3476, 32.5825),
+    "Wakiso": (0.4041, 32.4597),
+    "Jinja": (0.4244, 33.2036),
+    "Mbarara": (-0.6072, 30.6545),
+    "Gulu": (2.7720, 32.2985),
+    "Mbale": (1.0784, 34.1750),
+    "Arua": (3.0301, 30.9072),
+    "Masaka": (-0.3410, 31.7340),
+    "Lira": (2.2490, 32.8999),
+    "Fort Portal": (0.6714, 30.2752),
+    "Kabale": (-1.2490, 29.9897),
+    "Tororo": (0.7000, 34.2000),
+    "Soroti": (1.7146, 33.6110),
+    "Hoima": (1.4356, 31.3435),
+    "Kasese": (0.1850, 30.0881),
+    "Mityana": (0.4175, 32.0250),
+    "Mukono": (0.3533, 32.7553),
+    "Iganga": (0.6092, 33.4838),
+    "Luwero": (0.8500, 32.4800),
+    "Moroto": (2.5333, 34.6667),
+    "Kitgum": (3.2833, 32.8833),
+    "Busia": (0.4630, 34.0833),
+    "Other": (1.0000, 32.5000),
+}

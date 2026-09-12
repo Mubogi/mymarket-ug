@@ -5,30 +5,66 @@
   <div class="bg-amber-100 text-amber-800 text-sm rounded-lg px-3 py-2 mb-3">This shop is currently inactive.</div>
 {% endif %}
 
-<div class="flex items-center gap-4 bg-brand-50 rounded-2xl p-4 mb-5">
-  <div class="w-16 h-16 rounded-full bg-white border overflow-hidden grid place-items-center text-2xl">
-    {% if vendor.logo %}<img src="{{ vendor.logo }}" class="object-cover w-full h-full" alt="logo">{% else %}🏪{% endif %}
-  </div>
-  <div>
-    <h1 class="text-xl font-extrabold text-brand-700 flex items-center gap-1">
-      {{ vendor.shop_name }}
-      {% if vendor.is_verified %}<span class="text-xs bg-brand-600 text-white px-2 py-0.5 rounded-full">✔ Verified</span>{% endif %}
-    </h1>
-    <p class="text-sm text-gray-600">
-      📍 {{ (vendor.shop_no ~ ', ') if vendor.shop_no }}{{ vendor.location_detail or vendor.location_area or vendor.location_city }}{{ ' (' ~ vendor.location_area ~ ')' if vendor.location_area and vendor.location_detail }}, {{ vendor.location_city }}
-    </p>
-    {% if vendor.description %}<p class="text-sm text-gray-500 mt-1">{{ vendor.description }}</p>{% endif %}
-    {% if vendor.opening_hours %}<p class="text-xs text-gray-500 mt-1">🕒 {{ vendor.opening_hours }}</p>{% endif %}
-    <div class="flex flex-wrap gap-2 mt-3">
-      <a href="/chat/{{ vendor.id }}" class="text-xs px-3 py-1.5 rounded-full border-2 border-brand-600 text-brand-700 font-bold">💭 Chat with vendor</a>
-      {% if vendor.phone %}<a href="tel:{{ vendor.phone }}" class="text-xs px-3 py-1.5 rounded-full border border-brand-600 text-brand-700 font-bold">📞 {{ vendor.phone }}</a>{% endif %}
-      {% if vendor.whatsapp %}<a href="https://wa.me/{{ vendor.whatsapp|replace(' ', '') }}" class="text-xs px-3 py-1.5 rounded-full border border-green-600 text-green-700 font-bold">💬 WhatsApp</a>{% endif %}
-      {% if vendor.email %}<a href="mailto:{{ vendor.email }}" class="text-xs px-3 py-1.5 rounded-full border border-gray-400 text-gray-600 font-bold">✉️ {{ vendor.email }}</a>{% endif %}
+<div class="bg-brand-50 rounded-2xl p-4 mb-5">
+  <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white border overflow-hidden grid place-items-center text-4xl shrink-0">
+      {% if vendor.logo %}<img src="{{ vendor.logo }}" class="object-cover w-full h-full" alt="logo">{% else %}🏪{% endif %}
+    </div>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-2xl font-extrabold text-brand-700 flex flex-wrap items-center gap-2">
+        {{ vendor.shop_name }}
+        {% if vendor.is_verified %}<span class="text-xs bg-brand-600 text-white px-2 py-0.5 rounded-full">✔ Verified</span>{% endif %}
+        {% if avg_rating %}<span class="text-sm text-amber-500">★ {{ avg_rating }} <span class="text-gray-400 font-normal">({{ rating_count }})</span></span>{% endif %}
+      </h1>
+      <p class="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1">
+        📍 {{ (vendor.shop_no ~ ', ') if vendor.shop_no }}{{ vendor.location_detail or vendor.location_area or vendor.location_city }}{{ ' (' ~ vendor.location_area ~ ')' if vendor.location_area and vendor.location_detail }}, {{ vendor.location_city }}
+      </p>
+      {% if vendor.description %}<p class="text-sm text-gray-500 mt-1">{{ vendor.description }}</p>{% endif %}
+      {% if vendor.opening_hours %}<p class="text-xs text-gray-500 mt-1">🕒 {{ vendor.opening_hours }}</p>{% endif %}
+
+      <!-- Contact & map actions -->
+      <div class="flex flex-wrap gap-2 mt-3">
+        <a href="/chat/{{ vendor.id }}" class="text-xs px-3 py-1.5 rounded-full border-2 border-brand-600 text-brand-700 font-bold bg-white">💭 Chat with vendor</a>
+        {% if vendor.phone %}<a href="tel:{{ vendor.phone }}" class="text-xs px-3 py-1.5 rounded-full border border-brand-600 text-brand-700 font-bold bg-white">📞 {{ vendor.phone }}</a>{% endif %}
+        {% if vendor.whatsapp %}<a href="https://wa.me/{{ vendor.whatsapp|replace(' ', '') }}" class="text-xs px-3 py-1.5 rounded-full border border-green-600 text-green-700 font-bold bg-white">💬 WhatsApp</a>{% endif %}
+        {% if vendor.email %}<a href="mailto:{{ vendor.email }}" class="text-xs px-3 py-1.5 rounded-full border border-gray-400 text-gray-600 font-bold bg-white">✉️ {{ vendor.email }}</a>{% endif %}
+        <button onclick="shareShop()" class="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 font-bold bg-white">🔗 Share shop</button>
+        {% if lat and lon %}
+        <a href="https://www.google.com/maps/search/?api=1&query={{ lat }},{{ lon }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 font-bold bg-white">🗺️ Open in Maps</a>
+        {% endif %}
+      </div>
+
+      <!-- Social links -->
+      {% if vendor.facebook or vendor.instagram or vendor.tiktok or vendor.twitter or vendor.website %}
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <span class="text-xs text-gray-500 font-semibold">Find us:</span>
+        {% if vendor.website %}<a href="{{ vendor.website }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-300 text-gray-700 font-bold">🌐 Website</a>{% endif %}
+        {% if vendor.facebook %}<a href="{{ vendor.facebook }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-300 text-gray-700 font-bold">📘 Facebook</a>{% endif %}
+        {% if vendor.instagram %}<a href="{{ vendor.instagram }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-300 text-gray-700 font-bold">📸 Instagram</a>{% endif %}
+        {% if vendor.tiktok %}<a href="{{ vendor.tiktok }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-300 text-gray-700 font-bold">🎵 TikTok</a>{% endif %}
+        {% if vendor.twitter %}<a href="{{ vendor.twitter }}" target="_blank" rel="noopener" class="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-300 text-gray-700 font-bold">🐦 Twitter / X</a>{% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
 
 {% if vendor.is_active %}
+<div class="flex items-center gap-2 mb-4">
+  <h2 class="text-lg font-bold text-brand-700">🛍️ {{ vendor.shop_name }} Products</h2>
+  <span class="text-sm text-gray-500">{{ product_count }}</span>
+  <form method="get" class="ml-auto flex items-center gap-2">
+    <input name="q" value="{{ q }}" placeholder="Search in shop…" class="border rounded-lg px-3 py-1.5 text-sm w-36 sm:w-48">
+    <select name="sort" onchange="this.form.submit()" class="border rounded-lg px-2 py-1.5 text-sm bg-white">
+      <option value="" {% if not sort_by %}selected{% endif %}>Sort</option>
+      <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Price: low → high</option>
+      <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Price: high → low</option>
+      <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+      <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Popular</option>
+    </select>
+  </form>
+</div>
+
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
   {% for p in products %}
   <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
@@ -39,8 +75,8 @@
     </a>
     <div class="p-2">
       <div class="font-semibold text-sm line-clamp-1">{{ p.name }}</div>
-      <div class="text-brand-700 font-bold text-sm mb-2">UGX {{ p.price|ugx }}</div>
-      <div class="flex gap-2">
+      {% if p.discount %}<div class="flex items-baseline gap-1"><span class="text-brand-700 font-bold text-sm">UGX {{ p.discounted_price|ugx }}</span><span class="text-[10px] text-gray-400 line-through">UGX {{ p.price|ugx }}</span></div>{% else %}<div class="text-brand-700 font-bold text-sm">UGX {{ p.price|ugx }}</div>{% endif %}
+      <div class="flex gap-2 mt-2">
         <a href="/go/whatsapp/{{ p.id }}" class="flex-1 text-center text-xs font-bold bg-brand-600 text-white rounded-lg py-1.5">WhatsApp</a>
         <a href="/go/call/{{ p.id }}" class="flex-1 text-center text-xs font-bold border border-brand-600 text-brand-700 rounded-lg py-1.5">Call</a>
       </div>
@@ -51,4 +87,18 @@
   {% endfor %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function shareShop() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: '{{ vendor.shop_name|e }}', text: 'Check out {{ vendor.shop_name|e }} on MyMarket.ug', url: url }).catch(function(){});
+    } else {
+      navigator.clipboard && navigator.clipboard.writeText(url);
+      alert('Shop link copied: ' + url);
+    }
+  }
+</script>
 {% endblock %}
