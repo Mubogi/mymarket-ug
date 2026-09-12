@@ -22,6 +22,7 @@ from ..models import (
     CITIES,
     DISTRICT_COORDS,
     MarketDay,
+    Order,
     Product,
     Review,
     Spotlight,
@@ -429,6 +430,32 @@ def favorites_api():
     return jsonify(data)
 
 
+@bp.route("/order/<int:order_id>")
+def order_confirmation(order_id):
+    """Confirmation + tracking page shown after placing an order."""
+    order = Order.query.get_or_404(order_id)
+    return render_template("order_tracking.html", order=order)
+
+
+@bp.route("/orders/lookup", methods=["GET", "POST"])
+def order_lookup():
+    """Find all orders for a given phone number (buyer "My Orders")."""
+    if request.method == "POST":
+        phone = (request.form.get("phone") or "").strip()
+        if not phone:
+            flash("Enter the phone you used to order.", "error")
+            return redirect(url_for("main.order_lookup"))
+        orders = (
+            Order.query.filter_by(customer_phone=phone)
+            .order_by(Order.created_at.desc())
+            .all()
+        )
+        return render_template(
+            "order_lookup.html", orders=orders, phone=phone, categories=CATEGORIES
+        )
+    return render_template("order_lookup.html", orders=None, categories=CATEGORIES, cities=CITIES)
+
+
 @bp.route("/go/order/<int:product_id>")
 def go_order(product_id):
     """One-tap order intent: opens WhatsApp with a pre-filled order message."""
@@ -533,3 +560,33 @@ def service_worker():
         200,
         {"Content-Type": "application/javascript", "Service-Worker-Allowed": "/"},
     )
+
+
+@bp.route("/sitemap.xml")
+def sitemap():
+    from xml.sax.saxutils import escape
+
+    base = f"https://{current_app.config.get('BASE_DOMAIN', 'mymarket.ug')}"
+    pages = ["/", "/favorites", "/market-days", "/orders/lookup"]
+    products = _visible_products().all()
+    shops = Vendor.query.filter_by(is_active=True).all()
+    out = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for path in pages:
+        out.append(f"  <url><loc>{base}{path}</loc><priority>0.8</priority></url>")
+    for p in products:
+        out.append(f"  <url><loc>{base}/product/{p.id}</loc><priority>0.9</priority></url>")
+    for s in shops:
+        out.append(f"  <url><loc>{base}/shop/{escape(s.slug)}</loc><priority>0.7</priority></url>")
+    out.append("</urlset>")
+    return "\n".join(out), 200, {"Content-Type": "application/xml"}
+
+
+@bp.route("/robots.txt")
+def robots():
+    base = f"https://{current_app.config.get('BASE_DOMAIN', 'mymarket.ug')}"
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
+    return body, 200, {"Content-Type": "text/plain"}

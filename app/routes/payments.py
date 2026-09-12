@@ -62,7 +62,7 @@ def settle_order(order):
 @bp.route("/orders/buy/<int:product_id>", methods=["POST"])
 @limiter.limit("10 per hour")
 def buy_product(product_id):
-    """Start a Flutterwave checkout for a customer product order."""
+    """Create a customer order. Pays via Flutterwave checkout, or cash-on-delivery."""
     p = Product.query.get_or_404(product_id)
     if p.is_hidden or not p.vendor.is_active:
         abort(404)
@@ -75,36 +75,85 @@ def buy_product(product_id):
         raw_qty = 1
     qty = max(1, min(99, raw_qty))
     if p.stock is not None and qty > p.stock:
-        flash(f"Only {p.stock}in stock.", "error")
-        return redirect(url_for("main.product_view", product_id=p.id))
-
-    if not flw.flutterwave_enabled(current_app):
-        flash("Online payments are not enabled yet. Please use WhatsApp to order.", "error")
+        flash(f"Only {p.stock} in stock.", "error")
         return redirect(url_for("main.product_view", product_id=p.id))
 
     unit = p.discounted_price if p.discount else p.price
     amount = unit * qty
+    try:
+        raw_fee = int(request.form.get("delivery_fee", "0") or "0")
+    except (TypeError, ValueError):
+        raw_fee = 0
+    delivery_fee = max(0, min(20000, raw_fee))
+    total = amount + delivery_fee
+
+    payment_method = (request.form.get("payment") or "flutterwave").strip().lower()
+    if payment_method not in ("flutterwave", "cod"):
+        payment_method = "flutterwave"
+
+    name = (request.form.get("name") or "").strip()[:120]
+    phone = (request.form.get("phone") or "").strip()[:30]
+    email = (request.form.get("email") or "").strip()[:120]
+    address = (request.form.get("address") or "").strip()[:255]
+    if not (name and phone):
+        flash("Please provide your name and phone number.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+
     order = Order(
         product_id=p.id,
         vendor_id=p.vendor_id,
         qty=qty,
         amount=amount,
-        customer_name=(request.form.get("name") or "").strip()[:120],
-        customer_phone=(request.form.get("phone") or "").strip()[:30],
-        customer_email=(request.form.get("email") or "").strip()[:120],
-        customer_address=(request.form.get("address") or "").strip()[:255],
+        delivery_fee=delivery_fee,
+        payment_method=payment_method,
+        customer_name=name,
+        customer_phone=phone,
+        customer_email=email,
+        customer_address=address,
         tx_ref=f"mymarket-order-{int(time.time())}-{p.id}",
     )
+    # Reserve stock for COD (paid orders reserve in settle_order on payment).
+    if payment_method == "cod" and p.stock is not None:
+        p.stock = max(0, p.stock - qty)
     db.session.add(order)
     db.session.commit()
+
+    from ..sms import send_sms
+    from ..push import notify_user
+
+    if payment_method == "cod":
+        # Cash-on-delivery: no gateway needed. Notify the vendor immediately.
+        order.status = "pending"
+        order.merchant_notify = True
+        db.session.commit()
+        vend_phone = order.vendor.user.phone
+        if vend_phone:
+            send_sms(
+                vend_phone,
+                f"MyMarket.ug: New COD order! {name} wants {qty}x {p.name} "
+                f"(UGX {total:,}, delivery {delivery_fee:,}). Call {phone}.",
+            )
+        notify_user(
+            order.vendor.user_id,
+            "New COD order",
+            f"{qty}x {p.name} — UGX {total:,}. Call {phone} to confirm.",
+            "/vendor#orders",
+        )
+        flash("Order placed! The vendor will call you to confirm delivery. 🎉", "success")
+        return redirect(url_for("main.order_confirmation", order_id=order.id))
+
+    if not flw.flutterwave_enabled(current_app):
+        flash("Online payments are not enabled yet. Please use WhatsApp or Cash on Delivery.", "error")
+        return redirect(url_for("main.product_view", product_id=p.id))
+
     link = flw.create_merchant_checkout(
         current_app,
-        amount,
+        total,
         order.tx_ref,
         {
-            "email": order.customer_email or "buyer@example.com",
-            "phonenumber": order.customer_phone or "",
-            "name": order.customer_name or "Buyer",
+            "email": email or "buyer@example.com",
+            "phonenumber": phone or "",
+            "name": name or "Buyer",
         },
         p.vendor,
         f"{p.name} × {qty}",

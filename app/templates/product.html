@@ -1,5 +1,27 @@
 {% extends "base.html" %}
 {% block title %}{{ product.name }} — MyMarket.ug{% endblock %}
+{% block head %}
+<meta name="description" content="{{ product.name }} — {{ product.description|truncate(140, True) if product.description else '' }} Price UGX {{ (product.discounted_price if product.discount else product.price)|ugx }} on MyMarket.ug from {{ product.vendor.shop_name }}, {{ product.vendor.location_city }}.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": {{ product.name|tojson }},
+  "image": {{ (product.image_url or '')|tojson }},
+  "description": {{ (product.description or '')|tojson }},
+  "sku": "MYM-{{ product.id }}",
+  "brand": { "@type": "Brand", "name": {{ product.vendor.shop_name|tojson }} },
+  "aggregateRating": {% if product.avg_rating %}{ "@type": "AggregateRating", "ratingValue": {{ product.avg_rating|tojson }}, "reviewCount": {{ product.reviews|length }} }{% else %}{ "@type": "AggregateRating", "ratingValue": "5", "reviewCount": "0" }{% endif %},
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "UGX",
+    "price": {{ ((product.discounted_price if product.discount else product.price))|tojson }},
+    "availability": "{% if product.stock == 0 %}https://schema.org/OutOfStock{% elif product.stock is not none %}https://schema.org/InStock{% else %}https://schema.org/InStock{% endif %}",
+    "seller": { "@type": "Organization", "name": {{ product.vendor.shop_name|tojson }} }
+  }
+}
+</script>
+{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
   <div class="rounded-2xl overflow-hidden border bg-brand-50 aspect-square sm:aspect-video flex items-center justify-center reveal">
@@ -106,18 +128,38 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="flex gap-2">
         <input name="name" required placeholder="Full name" class="flex-1 border rounded-lg px-3 py-2 text-sm">
-        <input name="phone" required placeholder="Phone" class="flex-1 border rounded-lg px-3 py-2 text-sm">
+        <input name="phone" required placeholder="Phone (e.g. 0772 123 456)" class="flex-1 border rounded-lg px-3 py-2 text-sm">
       </div>
       <input name="email" type="email" placeholder="Email (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
-      <input name="address" placeholder="Delivery address (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+      <input name="address" placeholder="Delivery address / area (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+      <select name="delivery_fee" class="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+        <option value="0">🚚 Delivery: Free pickup / pay locally</option>
+        <option value="3000">🚚 Delivery in town: +UGX 3,000</option>
+        <option value="5000">🚚 Delivery within city: +UGX 5,000</option>
+        <option value="8000">🚚 Delivery across district: +UGX 8,000</option>
+      </select>
       <div class="flex items-center gap-2">
         <label class="text-xs text-gray-500">Qty</label>
         <input name="qty" type="number" min=1 value=1 class="w-20 border rounded-lg px-2 py-1 text-sm">
-        <span class="text-xs text-gray-400 ml-auto">💳 Pay by Mobile Money / Card — secure Flutterwave checkout</span>
       </div>
-      <button class="w-full bg-brand-600 text-white font-bold rounded-xl py-3">Pay Now</button>
+      <div class="rounded-lg border p-2 space-y-1.5 bg-brand-50/50">
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="payment" value="cod" checked class="accent-brand-600">
+          <span class="font-semibold">💵 Cash on Delivery</span>
+          <span class="text-[11px] text-gray-500 ml-auto">Pay when it arrives</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="payment" value="flutterwave" class="accent-brand-600">
+          <span class="font-semibold">💳 Mobile Money / Card</span>
+          <span class="text-[11px] text-gray-500 ml-auto">Secure Flutterwave</span>
+        </label>
+      </div>
+      <button class="btn-pop w-full bg-brand-600 text-white font-bold rounded-xl py-3">Place Order</button>
     </form>
-    <p class="text-xs text-gray-400 mt-2">Prefer WhatsApp? <a href="/go/order/{{ product.id }}" class="text-brand-600 underline">Order via WhatsApp instead</a></p>
+    <p class="text-xs text-gray-400 mt-2">
+      Prefer WhatsApp? <a href="/go/order/{{ product.id }}" class="text-brand-600 underline">Order via WhatsApp instead</a> ·
+      Track it: <a href="/orders/lookup" class="text-brand-600 underline">My Orders</a>
+    </p>
   </div>
 </div>
 

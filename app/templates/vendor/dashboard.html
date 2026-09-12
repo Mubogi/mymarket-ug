@@ -211,20 +211,47 @@
   <section x-show="tab==='orders'">
     <div class="flex items-center justify-between mb-3">
       <h2 class="font-bold text-lg">🛒 Orders</h2>
-      <p class="text-xs text-gray-500">Paid customer orders — confirmed via Flutterwave</p>
+      <p class="text-xs text-gray-500">Customer orders — COD and paid</p>
     </div>
     <div class="space-y-2">
       {% for o in orders %}
-      <div class="bg-white border rounded-xl px-3 py-2 text-sm flex flex-wrap items-center gap-2">
-        <span class="font-bold">{{ o.qty }}x {{ o.product.name }}</span>
-        <span class="text-gray-500">{{ o.customer_name or 'Guest' }} · {{ o.customer_phone or 'no phone' }}</span>
-        <span class="font-bold text-brand-700 ml-auto">UGX {{ o.amount|ugx }}</span>
-        <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-700' if o.status=='paid' else 'bg-amber-100 text-amber-700' }}">{{ o.status }}</span>
-        <span class="text-xs text-gray-400">{{ o.created_at.strftime('%d %b %H:%M') }}</span>
-        {% if o.customer_address %}<span class="w-full text-xs text-gray-500">📍 {{ o.customer_address }}</span>{% endif %}
-        <span class="w-full text-xs text-gray-400">Deliver to: {{ o.customer_name or '—' }} · Call {{ o.customer_phone or '—' }}{% if o.customer_email %} · {{ o.customer_email }}{% endif %}</span>
+      {% set badges = {'pending': 'bg-amber-100 text-amber-700', 'confirmed': 'bg-brand-100 text-brand-700', 'delivered': 'bg-green-100 text-green-700', 'paid': 'bg-green-100 text-green-700', 'cancelled': 'bg-red-100 text-red-700'} %}
+      <div class="bg-white border rounded-xl px-3 py-2 text-sm">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-bold">{{ o.qty }}x {{ o.product.name }}</span>
+          <span class="text-gray-500">{{ o.customer_name or 'Guest' }}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{{ '💵 COD' if o.payment_method=='cod' else '💳 Paid online' }}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full {{ badges.get(o.status, 'bg-gray-100 text-gray-600') }}">{{ o.status }}</span>
+          <span class="font-bold text-brand-700 ml-auto">UGX {{ (o.amount + o.delivery_fee)|ugx }}</span>
+          {% if o.delivery_fee %}<span class="text-[10px] text-gray-400">+ {{ o.delivery_fee|ugx }} delivery</span>{% endif %}
+          <span class="text-xs text-gray-400">{{ o.created_at.strftime('%d %b %H:%M') }}</span>
+        </div>
+        <div class="mt-1 text-xs text-gray-500">
+          📞 {{ o.customer_phone or '—' }}{% if o.customer_address %} · 📍 {{ o.customer_address }}{% endif %}{% if o.customer_email %} · ✉️ {{ o.customer_email }}{% endif %}
+        </div>
+        {% if o.status in ['pending', 'confirmed'] %}
+        <div class="flex gap-2 mt-2">
+          {% if o.status == 'pending' %}
+          <form method="post" action="/vendor/orders/{{ o.id }}/status">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="confirm">
+            <button class="btn-pop px-3 py-1.5 rounded-full bg-brand-600 text-white text-xs font-bold">✅ Mark confirmed</button>
+          </form>
+          {% endif %}
+          <form method="post" action="/vendor/orders/{{ o.id }}/status">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="deliver">
+            <button class="btn-pop px-3 py-1.5 rounded-full bg-green-600 text-white text-xs font-bold">🚚 Mark delivered</button>
+          </form>
+          <form method="post" action="/vendor/orders/{{ o.id }}/status">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="cancel">
+            <button class="btn-pop px-3 py-1.5 rounded-full border border-red-200 text-red-600 text-xs font-bold">✕ Cancel</button>
+          </form>
+        </div>
+        {% endif %}
       </div>
-      {% else %}<p class="text-sm text-gray-500">No orders yet. When a customer pays via Buy Now, orders appear here.</p>{% endfor %}
+      {% else %}<p class="text-sm text-gray-500">No orders yet. When a customer orders (COD or paid), they appear here.</p>{% endfor %}
     </div>
   </section>
 

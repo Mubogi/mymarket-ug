@@ -21,6 +21,25 @@
 
 <div id="geoBanner" class="hidden mb-2"></div>
 
+<!-- Trust bar -->
+<div class="mb-4 grid grid-cols-3 gap-2 text-center text-[11px] sm:text-xs text-gray-600">
+  <div class="bg-brand-50 rounded-xl px-2 py-2 border border-brand-100">
+    <p class="text-base">🛡️</p>
+    <p class="font-bold text-brand-700">Safe & Local</p>
+    <p class="hidden sm:block text-gray-500">Ugandan marketplace</p>
+  </div>
+  <div class="bg-brand-50 rounded-xl px-2 py-2 border border-brand-100">
+    <p class="text-base">💵</p>
+    <p class="font-bold text-brand-700">Cash on Delivery</p>
+    <p class="hidden sm:block text-gray-500">Pay when it arrives</p>
+  </div>
+  <div class="bg-brand-50 rounded-xl px-2 py-2 border border-brand-100">
+    <p class="text-base">✅</p>
+    <p class="font-bold text-brand-700">Verified Vendors</p>
+    <p class="hidden sm:block text-gray-500">Check before you buy</p>
+  </div>
+</div>
+
 <!-- Filter chips row (scrollable on mobile) -->
 <div class="flex items-center gap-2 mb-3 text-sm overflow-x-auto no-scrollbar snap-rail py-1 -mx-1 px-1">
   {% if city %}
@@ -189,6 +208,24 @@
   </div>
 </div>
 {% endif %}
+
+<div class="mt-10 grid sm:grid-cols-3 gap-3 text-center">
+  <div class="card-lift bg-white border rounded-2xl p-5">
+    <p class="text-3xl">🛍️</p>
+    <p class="font-bold text-sm mt-2">1 · Browse & order</p>
+    <p class="text-xs text-gray-500 mt-1">Find what you need from verified local vendors in your city or across Uganda.</p>
+  </div>
+  <div class="card-lift bg-white border rounded-2xl p-5">
+    <p class="text-3xl">💵</p>
+    <p class="font-bold text-sm mt-2">2 · Cash on Delivery</p>
+    <p class="text-xs text-gray-500 mt-1">Pay mobile money/card online, or pay cash when your order arrives. No prepayment risk.</p>
+  </div>
+  <div class="card-lift bg-white border rounded-2xl p-5">
+    <p class="text-3xl">✅</p>
+    <p class="font-bold text-sm mt-2">3 · Track to your door</p>
+    <p class="text-xs text-gray-500 mt-1">Follow your order from placed → confirmed → delivered with your phone number.</p>
+  </div>
+</div>
 
 <div class="mt-10 bg-brand-50 border border-brand-100 rounded-2xl p-6 text-center">
   <h2 class="text-xl font-bold text-brand-700">Sell on MyMarket.ug</h2>

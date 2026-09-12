@@ -132,6 +132,8 @@ def _auto_migrate(app):
             ("orders", "status", "VARCHAR(20) DEFAULT 'pending'", "VARCHAR(20) DEFAULT 'pending'"),
             ("orders", "tx_ref", "VARCHAR(120)", "VARCHAR(120)"),
             ("orders", "merchant_notify", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT false"),
+            ("orders", "buyer_notify", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT false"),
+            ("orders", "payment_method", "VARCHAR(20) DEFAULT 'flutterwave'", "VARCHAR(20) DEFAULT 'flutterwave'"),
             ("orders", "created_at", "DATETIME", "TIMESTAMP"),
             ("orders", "paid_at", "DATETIME", "TIMESTAMP"),
         ]:

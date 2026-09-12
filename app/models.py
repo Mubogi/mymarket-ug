@@ -163,21 +163,23 @@ class MarketDayBooking(db.Model):
 
 
 class Order(db.Model):
-    """A customer purchase paid via Flutterwave merchant checkout (split to vendor)."""
+    """A customer purchase, paid via Flutterwave checkout or cash-on-delivery."""
     __tablename__ = "orders"
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
     vendor_id = db.Column(db.Integer, db.ForeignKey("vendors.id"), nullable=False)
     qty = db.Column(db.Integer, default=1, nullable=False)
-    amount = db.Column(db.Integer, nullable=False)  # total paid(incl. delivery fee)
+    amount = db.Column(db.Integer, nullable=False)  # product subtotal (incl. discount)
     delivery_fee = db.Column(db.Integer, default=0)
+    payment_method = db.Column(db.String(20), default="flutterwave")  # flutterwave|cod
     customer_name = db.Column(db.String(120))
-    customer_phone = db.Column(db.String(30))
+    customer_phone = db.Column(db.String(30), index=True)
     customer_email = db.Column(db.String(120))
     customer_address = db.Column(db.String(255))
-    status = db.Column(db.String(20), default="pending")  # pending|paid|cancelled
+    status = db.Column(db.String(20), default="pending")  # pending|confirmed|delivered|paid|cancelled
     tx_ref = db.Column(db.String(120), unique=True)
     merchant_notify = db.Column(db.Boolean, default=False)  # vendor notified of new sale
+    buyer_notify = db.Column(db.Boolean, default=False)  # buyer notified of status change
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
 

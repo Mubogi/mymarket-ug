@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Track My Orders — MyMarket.ug{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto fade-in">
+  <div class="text-center mb-5">
+    <p class="text-4xl">📋</p>
+    <h1 class="text-xl font-extrabold mt-1">My Orders</h1>
+    <p class="text-sm text-gray-500">Enter the phone number you used to order. No account needed.</p>
+  </div>
+
+  <form method="post" class="flex gap-2 mb-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="phone" required value="{{ phone or '' }}" placeholder="e.g. 0772 123 456"
+      class="flex-1 border-2 border-brand-600 rounded-xl px-4 py-3 text-sm outline-none">
+    <button class="btn-pop bg-brand-600 text-white font-bold rounded-xl px-5">Find</button>
+  </form>
+
+  {% if orders is not none %}
+    {% if orders %}
+      {% for o in orders %}
+      <div class="bg-white border rounded-2xl p-4 shadow-sm card-lift mb-3">
+        <div class="flex gap-3">
+          {% if o.product.image_url %}
+            <img src="{{ o.product.image_url }}" class="w-14 h-14 rounded-lg object-cover">
+          {% else %}
+            <div class="w-14 h-14 rounded-lg bg-brand-50 grid place-items-center text-xl">🛍️</div>
+          {% endif %}
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-bold text-sm truncate">{{ o.product.name }}</p>
+              {% if o.status == 'delivered' %}
+                <span class="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">Delivered</span>
+              {% elif o.status == 'confirmed' %}
+                <span class="text-[10px] bg-brand-100 text-brand-700 font-bold px-2 py-0.5 rounded-full">Confirmed</span>
+              {% elif o.status == 'cancelled' %}
+                <span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">Cancelled</span>
+              {% else %}
+                <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Placed</span>
+              {% endif %}
+            </div>
+            <p class="text-xs text-gray-500">Qty {{ o.qty }} · {{ o.vendor.shop_name }} · {{ o.created_at.strftime('%d %b') }}</p>
+            <p class="text-sm font-bold text-brand-700 mt-0.5">
+              UGX {{ (o.amount + o.delivery_fee)|ugx }}
+              <span class="text-[10px] font-normal text-gray-400">{{ 'COD' if o.payment_method == 'cod' else 'Paid online' }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center py-10 text-gray-500">
+        <p class="text-4xl">🔍</p>
+        <p class="mt-2 text-sm">No orders found for <b>{{ phone }}</b>.</p>
+        <p class="text-xs text-gray-400">Did you use a different number? Try again.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <div class="text-xs text-gray-500 text-center mt-4">
+    Need help? <a href="/orders/lookup" class="text-brand-600 underline">Re-run search</a>
+    or <a href="/" class="text-brand-600 underline">browse products</a>.
+  </div>
+</div>
+{% endblock %}

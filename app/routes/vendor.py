@@ -385,6 +385,53 @@ def boost_product(pid):
     return redirect(url_for("vendor.dashboard", tab="payments"))
 
 
+@bp.route("/orders/<int:order_id>/status", methods=["POST"])
+@login_required
+def update_order_status(order_id):
+    """Vendor updates an order: confirm or mark delivered. Notifies the buyer."""
+    v = current_vendor()
+    if not v:
+        return redirect(url_for("vendor.signup"))
+    order = Order.query.filter_by(id=order_id, vendor_id=v.id).first_or_404()
+    action = request.form.get("action", "")
+    if action == "confirm" and order.status in ("pending",):
+        order.status = "confirmed"
+    elif action == "deliver" and order.status in ("pending", "confirmed"):
+        order.status = "delivered"
+        order.paid_at = datetime.utcnow()
+    elif action == "cancel" and order.status in ("pending", "confirmed"):
+        order.status = "cancelled"
+    else:
+        flash("Cannot change order status from here.", "error")
+        return redirect(url_for("vendor.dashboard", tab="orders"))
+    db.session.commit()
+
+    from ..sms import send_sms
+    from ..push import notify_user
+
+    if order.customer_phone:
+        if order.status == "confirmed":
+            send_sms(
+                order.customer_phone,
+                f"MyMarket.ug: Your order ({order.qty}x {order.product.name}) is confirmed. "
+                f"{v.shop_name} will contact you for delivery.",
+            )
+        elif order.status == "delivered":
+            send_sms(
+                order.customer_phone,
+                f"MyMarket.ug: Your order ({order.qty}x {order.product.name}) has been delivered. "
+                f"Enjoy — thanks for buying on MyMarket.ug!",
+            )
+            notify_user(
+                order.vendor.user_id,
+                "Order delivered",
+                f"{order.qty}x {order.product.name} marked delivered.",
+                "/vendor#orders",
+            )
+    flash(f"Order marked {order.status}.", "success")
+    return redirect(url_for("vendor.dashboard", tab="orders"))
+
+
 @bp.route("/reviews/<int:rid>/reply", methods=["POST"])
 @login_required
 def reply_review(rid):

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} — MyMarket.ug{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto fade-in">
+  <div class="text-center mb-4">
+    <p class="text-4xl">🎉</p>
+    <h1 class="text-xl font-extrabold mt-1">Order placed!</h1>
+    <p class="text-sm text-gray-500">
+      {% if order.payment_method == 'cod' %}
+        You'll pay <b>UGX {{ (order.amount + order.delivery_fee)|ugx }}</b> cash when your item arrives.
+      {% else %}
+        We've sent you to the secure payment page.
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="bg-white border rounded-2xl p-4 shadow-sm">
+    <div class="flex gap-3">
+      {% if order.product.image_url %}
+        <img src="{{ order.product.image_url }}" class="w-16 h-16 rounded-lg object-cover">
+      {% else %}
+        <div class="w-16 h-16 rounded-lg bg-brand-50 grid place-items-center text-2xl">🛍️</div>
+      {% endif %}
+      <div class="min-w-0">
+        <p class="font-bold">{{ order.product.name }}</p>
+        <p class="text-sm text-gray-500">Qty {{ order.qty }} · {{ order.vendor.shop_name }}</p>
+        <p class="text-sm font-bold text-brand-700 mt-1">
+          UGX {{ (order.amount + order.delivery_fee)|ugx }}
+          {% if order.delivery_fee %}<span class="text-[11px] font-normal text-gray-400">(incl. UGX {{ order.delivery_fee|ugx }} delivery)</span>{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="text-xs text-gray-500 mt-3 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1">
+      <span>#{{ order.id }}</span>
+      <span>📞 {{ order.customer_phone }}</span>
+      <span>💳 {{ 'Cash on Delivery' if order.payment_method == 'cod' else 'Mobile Money / Card' }}</span>
+    </div>
+  </div>
+
+  <!-- Status timeline -->
+  <div class="mt-4 bg-white border rounded-2xl p-4 shadow-sm">
+    <h2 class="font-bold text-sm mb-3">Order status</h2>
+    <div class="space-y-0">
+      {% set steps = ['placed', 'confirmed', 'delivered'] %}
+      {% set current = order.status %}
+      {% set labels = {
+        'placed': ('📦', 'Order placed'),
+        'confirmed': ('✅', 'Vendor confirmed'),
+        'delivered': ('🚚', 'Delivered'),
+      } %}
+      {% for s in steps %}
+        <div class="flex gap-3">
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full grid place-items-center text-sm {{ 'bg-brand-600 text-white' if s in ['placed', 'confirmed', 'delivered'] else 'bg-gray-100' }}">
+              {{ labels[s][0] }}
+            </div>
+            {% if not loop.last %}<div class="w-0.5 flex-1 {{ 'bg-brand-500' if steps[loop.index] in ['placed','confirmed'] else 'bg-gray-200' }}"></div>{% endif %}
+          </div>
+          <div class="pb-4">
+            <p class="text-sm font-semibold {{ 'text-brand-700' if s == current or (s == 'delivered' and current in ['delivered']) else 'text-gray-400' }}">{{ labels[s][1] }}</p>
+            <p class="text-[11px] text-gray-400">
+              {% if s == 'placed' %}{{ order.created_at.strftime('%d %b %Y, %H:%M') }}{% endif %}
+              {% if s == 'confirmed' and current in ['confirmed', 'delivered'] %}Confirmed by vendor{% endif %}
+              {% if s == 'delivered' and current == 'delivered' %}Delivered 🎉{% endif %}
+            </p>
+          </div>
+        </div>
+      {% endfor %}
+      {% if current == 'cancelled' %}
+      <p class="text-sm text-red-600 font-semibold">❌ Order cancelled</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <a href="/orders/lookup" class="btn-pop block mt-4 text-center bg-brand-600 text-white font-bold rounded-xl py-3">
+    📋 Track with this phone
+  </a>
+  <a href="/" class="btn-pop block mt-2 text-center border-2 border-brand-600 text-brand-700 font-bold rounded-xl py-2.5 bg-white">
+    Continue shopping
+  </a>
+</div>
+{% endblock %}
