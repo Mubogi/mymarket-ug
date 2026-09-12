@@ -1,18 +1,26 @@
 /* MyMarket.ug — micro-animations & responsive polish (plays nicely with Tailwind) */
 
-/* ---------- Scroll reveal ---------- */
+/* ---------- Scroll reveal ----------
+   Fail-safe: content is visible by default, even if JS is slow or fails.
+   Only when the JS adds `js` to <html> do we enable the hidden-until-reveal
+   behaviour — and even then, a no-JS/slow-JS visit keeps everything readable.
+   */
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+html.js .reveal {
   opacity: 0;
   transform: translateY(14px);
   transition: opacity .5s ease, transform .5s cubic-bezier(.22, 1, .36, 1);
   will-change: opacity, transform;
 }
-.reveal.in {
+html.js .reveal.in {
   opacity: 1;
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; transition: none; }
+  html.js .reveal, html.js .reveal.in { opacity: 1; transform: none; transition: none; }
 }
 
 /* ---------- Page content fade-in ---------- */

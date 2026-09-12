@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>document.documentElement.classList.remove('no-js');document.documentElement.classList.add('js');</script>
   <title>{% block title %}MyMarket.ug — Uganda's Online Market{% endblock %}</title>
   {% block head %}{% endblock %}
   <meta name="description" content="Buy and sell from local markets across Uganda.">
@@ -10,7 +11,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <meta name="theme-color" content="#15803d">
-  <link rel="stylesheet" href="/static/css/animations.css">
+  <link rel="stylesheet" href="/static/css/animations.css?v=2">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script>
@@ -121,13 +122,17 @@
     // Scroll-reveal + hover animation hooks (CSS handles the visuals)
     (function () {
       var els = document.querySelectorAll('.reveal');
+      var show = function (el) { el.classList.add('in'); };
+      /* Safety net: never let a reveal hide content. Show everything after
+         1.6s if the observer hasn't fired (slow JS, bfcache, etc.). */
+      setTimeout(function () { els.forEach(show); }, 1600);
       if (!('IntersectionObserver' in window) || !els.length) {
-        els.forEach(function (el) { el.classList.add('in'); });
+        els.forEach(show);
         return;
       }
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+          if (e.isIntersecting) { show(e.target); io.unobserve(e.target); }
         });
       }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
       els.forEach(function (el) { io.observe(el); });
